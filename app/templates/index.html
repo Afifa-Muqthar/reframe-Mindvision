@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Reframe — Personalized Narrative & Voice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reframe — Evidence-Informed Psychological Reasoning</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header>
-    <h1>Reframe</h1>
+    <div class="logo-area">
+      <h1>Reframe</h1>
+      <span class="subtitle">AI Mental Reframing Interface</span>
+    </div>
     <nav><a href="/">Home</a> | <a href="/journey">My Journey</a></nav>
   </header>
 
@@ -15,7 +19,7 @@
     <section id="input-section">
       <h2>What's on your mind?</h2>
       <form id="worry-form">
-        <textarea id="text-input" rows="4" placeholder="Type what's worrying you..."></textarea>
+        <textarea id="text-input" rows="4" placeholder="Describe the situation, thought, or interaction troubling you..."></textarea>
         <div class="row">
           <input type="file" id="audio-input" accept="audio/*">
           <button type="submit">Reframe this</button>
@@ -27,20 +31,67 @@
       <div class="crisis-box"></div>
     </section>
 
-    <section id="result-section" class="hidden">
-      <h2>Your narrative</h2>
-      <p id="summary" class="meta"></p>
-      <pre id="narrative"></pre>
-      <audio id="audio-player" controls class="hidden"></audio>
-      <div id="image-container">
-        <p id="image-loading">Generating an image for this...</p>
-        <img id="result-image" class="hidden" alt="Generated narrative image">
+    <section id="loading-section" class="hidden">
+      <div class="loader-card">
+        <div class="spinner"></div>
+        <p>Analyzing situation, psychological patterns, and assembling your reframing narrative...</p>
       </div>
-      <p class="citation" id="citation"></p>
     </section>
 
-    <section id="loading-section" class="hidden">
-      <p>Working through this — this can take a little while on a CPU-only machine...</p>
+    <section id="result-section" class="hidden">
+      <!-- Psychological Reasoning Layer -->
+      <div id="reasoning-container" class="reasoning-box">
+        <div class="reasoning-header">
+          <h3>Psychological Understanding</h3>
+          <span id="threat-badge" class="badge"></span>
+        </div>
+        
+        <div class="reasoning-grid">
+          <div class="reasoning-card">
+            <span class="card-label">What may be happening</span>
+            <p id="reasoning-happening" class="card-content"></p>
+          </div>
+          
+          <div class="reasoning-card">
+            <span class="card-label">What you can control</span>
+            <p id="reasoning-control" class="card-content"></p>
+          </div>
+          
+          <div class="reasoning-card highlight-card">
+            <span class="card-label">Reframe</span>
+            <p id="reasoning-reframe" class="card-content quote"></p>
+          </div>
+          
+          <div class="reasoning-card">
+            <span class="card-label">Next step</span>
+            <p id="reasoning-action" class="card-content"></p>
+          </div>
+        </div>
+
+        <p class="citation" id="citation"></p>
+      </div>
+
+      <!-- 3-Panel Visual Narrative -->
+      <div class="media-block">
+        <h3>🎨 Your 3-Panel Comic Story</h3>
+        <div id="image-container">
+          <p id="image-loading">Composing your 3-panel comic strip (Problem → Reframing → Resolution)...</p>
+          <img id="result-image" class="hidden" alt="Generated 3-panel comic strip">
+        </div>
+      </div>
+
+      <!-- Voice Narration -->
+      <div class="media-block">
+        <h3>🔊 Listen to Your Story</h3>
+        <p class="audio-note">Voice narration synthesized with Kokoro-82M</p>
+        <audio id="audio-player" controls class="hidden"></audio>
+      </div>
+
+      <!-- Narrative Text Breakdown -->
+      <div class="media-block collapsible-narrative">
+        <h3>Structured Narrative Breakdown</h3>
+        <pre id="narrative"></pre>
+      </div>
     </section>
   </main>
 

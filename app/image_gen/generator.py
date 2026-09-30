@@ -62,58 +62,47 @@ class ImageGenerator:
     def unload(self):
         del self._pipe
         gc.collect()
+from app.image_gen.prompt_builder import (
+    COMIC_VISUAL_STYLE,
+    NEGATIVE_PROMPT,
+    build_scene_prompts,
+    build_character_anchor,
+)
 
 
 def build_image_prompt(case_frame, technique: dict) -> str:
     """
-    Turns the case frame + chosen technique into a short, calm, non-literal
-    illustrative prompt (avoids depicting distressing scenes literally).
-    Kept for scripts/pregenerate_samples.py's manifest field; the live app
-    uses build_panel_prompts (three panels) instead -- see main.py.
+    Turns the case frame + chosen technique into a comic prompt.
+    Kept for backward compatibility with scripts and tests.
     """
     return (
-        f"A calm, gentle, hopeful illustration representing moving from {case_frame.core_emotion or 'worry'} "
-        f"toward {technique['name'].lower()}, soft colors, minimalist, digital art, no text, no words"
+        f"A gentle comic illustration representing moving from {case_frame.core_emotion or 'worry'} "
+        f"toward {technique['name'].lower()}, {COMIC_VISUAL_STYLE}"
     )
 
 
-def build_panel_prompts(core_emotion: str, technique_name: str) -> list:
+def build_panel_prompts(core_emotion: str, technique_name: str, story: dict = None) -> list:
     """
-    Three prompts for a CURRENT REALITY / REFRAME / DESIRED FUTURE
-    storyboard: same illustrated-figure description and art style in each,
-    varying only the concrete pose/scene, so that -- combined with a shared
-    seed in ImageGenerator.generate -- the three panels read as one visual
-    sequence rather than three unrelated pictures.
+    Builds 3 prompts for the 3-panel comic strip (Problem -> Reframing -> Resolution).
+    If a structured story is provided, delegates to build_scene_prompts;
+    otherwise creates grounded fallback prompts with character consistency.
+    """
+    if story and isinstance(story, dict):
+        return build_scene_prompts(story)
 
-    Deliberately concrete (a specific pose/setting) rather than abstract
-    psychological language: SD-Turbo has nothing to draw for a phrase like
-    "using cognitive restructuring" (it's not a visual concept), and testing
-    showed abstract prompts produced vague, figure-less color gradients
-    instead of a recognizable scene. The technique name is shown as a text
-    subtitle instead (see build_panel_subtitles), not asked of the image
-    model. Also avoids depicting the distressing content literally.
-    """
     emotion = core_emotion or "worried"
-    figure = (
-        "a simple minimalist illustration of one person, soft muted color palette, "
-        "gentle lighting, clean flat digital art style, no text, no words"
-    )
+    character_anchor = "a young adult with short dark hair, wearing a dark hoodie and jeans, relatable student"
     return [
-        f"{figure}, sitting at a desk with head resting on their hands, slouched and tired, feeling {emotion}",
-        f"{figure}, sitting cross-legged, writing thoughtfully in an open notebook, calm focused expression",
-        f"{figure}, standing outside looking toward a soft sunrise, relaxed steady posture, warm hopeful colors",
+        f"{character_anchor}, sitting at a study desk overwhelmed by notes, hands on head, feeling {emotion}, {COMIC_VISUAL_STYLE}",
+        f"{character_anchor}, sitting at desk pausing and taking a calm breath, looking at an open notebook, {COMIC_VISUAL_STYLE}",
+        f"{character_anchor}, sitting upright with focused determination, writing a realistic plan, bright morning light, {COMIC_VISUAL_STYLE}",
     ]
 
 
 def build_panel_subtitles(core_emotion: str, technique_name: str) -> list:
-    """
-    Short captions shown under each panel's header. Panel 3 deliberately
-    avoids promising an outcome (e.g. "you achieve your goal") -- the
-    narrative generator's banned-phrase list exists for the same reason: no
-    guaranteed outcome, ever.
-    """
+    """Short titles/captions for each panel's header."""
     return [
-        f"Feeling {core_emotion or 'this'}",
-        f"Try {technique_name}",
-        "One step at a time",
+        f"1. PROBLEM (Feeling {core_emotion or 'this'})",
+        f"2. REFRAME ({technique_name})",
+        "3. RESOLUTION (One step forward)",
     ]

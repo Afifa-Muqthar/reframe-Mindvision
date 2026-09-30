@@ -1,32 +1,35 @@
 """
-Flask orchestrator. Wires the pipeline stages together in order:
+Flask orchestrator for the AI Mental Reframing Interface.
 
-  input -> (ASR if audio) -> safety gate -> distortion detection ->
-  emotion detection -> Case Frame -> principle selector ->
-  narrative generation -> [text returned] -> TTS (sync) ->
-  image generation (background thread, subprocess-isolated) -> save to SQLite
+Workflow:
+  User input (text/audio) -> (ASR if audio) -> Safety Gate ->
+  Cognitive Distortion Detection -> Emotion Classification ->
+  Context Engine (Case Frame + Recurring Theme) -> Principle Selector ->
+  Structured 3-Stage Narrative (Problem -> Reframing -> Resolution) ->
+  Database Save -> Connected TTS Voice Narration ->
+  Process-Isolated Comic Strip Generation (SD-Turbo + Pillow Comic Compositor) ->
+  Asynchronous Frontend Polling.
 
-RAM discipline: spaCy and the emotion classifier stay resident across
-requests (small). Whisper, FLAN-T5, SD-Turbo, and Kokoro are loaded only
-for the stage that needs them and released (`del model; gc.collect()`)
-immediately after, since a typical student laptop can't hold all five in
-memory at once.
+RAM discipline:
+  spaCy and the emotion classifier stay resident across requests.
+  Whisper, FLAN-T5, and Kokoro are loaded only when needed and released immediately.
+  SD-Turbo runs isolated in a separate worker subprocess.
 """
 
-# Must be set before torch/CTranslate2/onnxruntime are imported anywhere
-# in the process. faster-whisper (CTranslate2) and PyTorch's bundled MKL
-# both link their own OpenMP runtime; loading both in one process aborts
-# with "OMP: Error #15: Initializing libiomp5md.dll, but found
-# libiomp5md.dll already initialized" the first time a request needs both
-# ASR and any torch-based stage (which is every real request). This is the
-# standard, documented workaround for that conflict.
 import os
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
+import json
 import subprocess
 import sys
 import threading
 import uuid
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from app.ssl_workaround import configure_hf_ssl_verify
+configure_hf_ssl_verify()
 
 from flask import Flask, request, jsonify, render_template, send_from_directory
 
@@ -34,9 +37,10 @@ from app.safety.safety_gate import screen_for_crisis, get_helpline_message
 from app.nlp.distortions import detect_distortions
 from app.emotion.classifier import EmotionClassifier
 from app.context_engine.case_frame import CaseFrame
+from app.psychology import parse_situation, select_strategy
 from app.principle_selector.selector import select_techniques
-from app.narrative_gen.generator import NarrativeGenerator, parse_narrative_parts
-from app.narrative_gen.affirmations import build_affirmation
+from app.narrative_gen.generator import NarrativeGenerator, format_narrative_text, parse_narrative_parts
+from app.image_gen.prompt_builder import build_scene_prompts
 from app.db.schema import init_db
 from app.db import repository
 
@@ -47,10 +51,10 @@ os.makedirs(MEDIA_DIR, exist_ok=True)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 init_db()
 
-# Emotion classifier + spaCy (via distortions module) stay resident.
+# Emotion classifier + spaCy stay resident
 _emotion_classifier = EmotionClassifier()
 
-# Tracks in-flight background image generation per session id.
+# Tracks in-flight background image generation per session id
 _image_status = {}  # session_id(str) -> {"status": "pending"|"done"|"error", "path": str|None}
 
 
@@ -89,55 +93,91 @@ def process():
             "message": get_helpline_message(),
         })
 
-    # 2. Cache check (Phase 2): identical repeated input skips full pipeline.
-    cached = _check_cache(text)
-    if cached:
-        return jsonify(cached)
+    # 2. Psychological Reasoning Layer: Situation & Pattern Parsing
+    psych_profile = parse_situation(text)
 
-    # 3. Distortion detection.
-    distortions = detect_distortions(text)
-
-    # 4. Emotion detection (resident classifier).
+    # 3. Emotion detection (resident ONNX classifier)
     emotion_scores, core_emotion = _emotion_classifier.classify(text)
+    if psych_profile.is_external_threat and core_emotion in ("neutral", "joy"):
+        core_emotion = "fear"
 
-    # 5. Case Frame.
-    case_frame = CaseFrame(raw_text=text, distortions=distortions,
-                            emotion_scores=emotion_scores, core_emotion=core_emotion)
+    # 4. Cognitive distortion scan (only for internal thoughts, NOT external harm)
+    distortions = []
+    if not psych_profile.is_external_threat:
+        distortions = detect_distortions(text)
+
+    # 5. Evidence-informed strategy selection (APA, SAMHSA, NIMH)
+    strategy = select_strategy(psych_profile)
+
+    # 6. Context Engine: assemble Case Frame with psychological reasoning
+    case_frame = CaseFrame(
+        raw_text=text,
+        distortions=distortions,
+        emotion_scores=emotion_scores,
+        core_emotion=core_emotion,
+        situation_type=psych_profile.situation_id,
+        trigger=psych_profile.trigger,
+        pattern=psych_profile.pattern,
+        is_external_threat=psych_profile.is_external_threat,
+        controllable=strategy.what_is_controllable,
+        uncontrollable=strategy.what_is_not_controllable,
+        strategy=strategy.to_dict(),
+        specific_reframe=strategy.reframe,
+        concrete_action=strategy.concrete_action,
+        reasoning={
+            "what_may_be_happening": f"{psych_profile.trigger} → {psych_profile.pattern}",
+            "what_you_can_control": strategy.what_is_controllable,
+            "what_is_not_controllable": strategy.what_is_not_controllable,
+            "reframe": strategy.reframe,
+            "next_step": strategy.concrete_action,
+        },
+    )
     case_frame.build_summary()
     case_frame.recurring_theme_note = repository.build_recurring_theme_note()
 
-    # 6. Principle selection.
-    techniques = select_techniques(case_frame)
-    primary_technique = techniques[0]
+    primary_technique = {
+        "name": strategy.name,
+        "citation": strategy.citation,
+        "description": strategy.mechanism,
+    }
 
-    # 7. Narrative generation (load -> use -> release).
+    # 7. Structured 3-Stage Narrative generation (Problem -> Reframing -> Resolution).
     generator = NarrativeGenerator()
     try:
-        narrative = generator.generate(case_frame, primary_technique)
+        story = generator.generate(case_frame, primary_technique)
     finally:
         generator.unload()
 
-    # 8. Save to DB now (audio/image paths filled in below/async).
-    session_id = repository.save_session(case_frame, narrative)
+    formatted_narrative = format_narrative_text(story)
 
-    # 9. TTS synchronously (fast enough not to block the response). Narrates
-    # a short first-person affirmation, not the narrative text itself --
-    # that's already shown, and now drawn, on screen, so reading it aloud
-    # verbatim would just be redundant.
-    affirmation = build_affirmation(case_frame.core_emotion, primary_technique["name"])
-    audio_path = _run_tts(session_id, affirmation)
+    # 8. Save to DB now (audio/image paths updated asynchronously).
+    session_id = repository.save_session(case_frame, formatted_narrative)
 
-    # 10. Image generation in background thread; frontend polls /image_status.
-    # Builds a 3-panel CURRENT REALITY / REFRAME / DESIRED FUTURE storyboard
-    # (see app/image_gen/storyboard.py) rather than one plain illustration.
+    # 9. Connected TTS voice narration (tells the cohesive psychological story).
+    voice_script = strategy.voice_script or story.get("voice_script") or formatted_narrative
+    audio_path = _run_tts(session_id, voice_script)
+
+    # 10. Launch process-isolated comic image generator with structured config.
     _image_status[str(session_id)] = {"status": "pending", "path": None}
-    narrative_parts = parse_narrative_parts(narrative)
-    panel_prompts, panel_subtitles = _build_panel_prompts_and_subtitles(
-        case_frame.core_emotion, primary_technique["name"]
-    )
+    scene_prompts = build_scene_prompts(story)
+    output_image_path = os.path.join(MEDIA_DIR, f"session_{session_id}.png")
+
+    job_config = {
+        "session_id": session_id,
+        "prompts": scene_prompts,
+        "scenes": story.get("scenes", []),
+        "output_path": output_image_path,
+        "seed": session_id,
+        "num_inference_steps": 2,
+        "title": f"REFRAME COMIC: {story.get('context', 'MENTAL REFRAMING').upper()}",
+    }
+    config_path = os.path.join(MEDIA_DIR, f"job_{session_id}.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(job_config, f, indent=2)
+
     threading.Thread(
         target=_generate_image_background,
-        args=(session_id, panel_prompts, panel_subtitles, narrative_parts),
+        args=(session_id, config_path, output_image_path),
         daemon=True,
     ).start()
 
@@ -147,12 +187,15 @@ def process():
         "summary": case_frame.summary,
         "distortions": case_frame.distortions,
         "core_emotion": case_frame.core_emotion,
+        "pattern": case_frame.pattern,
+        "is_external_threat": case_frame.is_external_threat,
+        "reasoning": case_frame.reasoning,
         "technique": {"name": primary_technique["name"], "citation": primary_technique["citation"]},
-        "narrative": narrative,
+        "narrative": formatted_narrative,
+        "story": story,
         "audio_url": f"/media/{os.path.basename(audio_path)}" if audio_path else None,
         "image_status_url": f"/image_status/{session_id}",
     }
-    _simple_cache[text.strip().lower()] = response
     return jsonify(response)
 
 
@@ -162,17 +205,12 @@ def image_status(session_id):
     resp = {"status": status["status"]}
     if status["status"] == "done" and status["path"]:
         resp["image_url"] = f"/media/{os.path.basename(status['path'])}"
+    elif status["status"] == "error":
+        resp["error"] = status.get("error", "Image generation failed.")
     return jsonify(resp)
 
 
-# ---- helpers ----
-
-_simple_cache = {}  # exact text -> response dict (Phase 2 requirement)
-
-
-def _check_cache(text: str):
-    return _simple_cache.get(text.strip().lower())
-
+# ---- internal helpers ----
 
 def _transcribe_audio(audio_file) -> str:
     from app.asr.transcriber import Transcriber
@@ -191,13 +229,13 @@ def _transcribe_audio(audio_file) -> str:
     return text
 
 
-def _run_tts(session_id: int, narrative: str) -> str:
+def _run_tts(session_id: int, script_text: str) -> str:
     from app.tts.narrator import Narrator
 
     output_path = os.path.join(MEDIA_DIR, f"session_{session_id}.wav")
     narrator = Narrator()
     try:
-        narrator.narrate(narrative, output_path)
+        narrator.narrate(script_text, output_path)
     except Exception:
         return None
     finally:
@@ -205,75 +243,35 @@ def _run_tts(session_id: int, narrative: str) -> str:
     return output_path
 
 
-def _build_panel_prompts_and_subtitles(core_emotion: str, technique_name: str):
-    from app.image_gen.generator import build_panel_prompts, build_panel_subtitles
-    return build_panel_prompts(core_emotion, technique_name), build_panel_subtitles(core_emotion, technique_name)
-
-
-_IMAGE_WORKER_CODE = """
-import os
-import sys
-sys.path.insert(0, {project_root!r})
-from app.image_gen.generator import ImageGenerator
-from app.image_gen.storyboard import compose_storyboard
-
-prompts = {prompts!r}
-panel_paths = {panel_paths!r}
-seed = {seed!r}
-
-gen = ImageGenerator()
-for prompt, path in zip(prompts, panel_paths):
-    gen.generate(prompt, path, seed=seed, num_inference_steps=2)
-gen.unload()
-
-compose_storyboard(panel_paths, {subtitles!r}, {narrative_parts!r}, {output_path!r})
-
-for p in panel_paths:
-    try:
-        os.remove(p)
-    except OSError:
-        pass
-"""
-
-
-def _generate_image_background(session_id: int, prompts: list, subtitles: list, narrative_parts: dict):
+def _generate_image_background(session_id: int, config_path: str, output_path: str):
     """
-    Runs SD-Turbo (three times, one per storyboard panel) in a separate
-    subprocess rather than in-thread. On a RAM-constrained machine,
-    SD-Turbo's VAE-decode step can segfault (see README's RAM note) -- and a
-    segfault kills the entire process it runs in, threads included, which
-    would take down the whole Flask server and every other in-flight
-    request along with it. Isolating it in a subprocess means a crash there
-    only fails that one image. The panel compositing (storyboard.py) also
-    runs in this same subprocess, after all three panels are generated.
+    Spawns the dedicated image worker in an isolated child process using
+    structured JSON arguments. Protects the parent Flask process from VAE-decode
+    native memory segmentation faults.
     """
-    output_path = os.path.join(MEDIA_DIR, f"session_{session_id}.png")
-    panel_paths = [os.path.join(MEDIA_DIR, f"session_{session_id}_panel{i + 1}.png") for i in range(3)]
     try:
-        code = _IMAGE_WORKER_CODE.format(
-            project_root=BASE_DIR,
-            prompts=prompts,
-            panel_paths=panel_paths,
-            seed=session_id,  # fixed per-session seed keeps the 3 panels' palette/style cohesive
-            subtitles=subtitles,
-            narrative_parts=narrative_parts,
-            output_path=output_path,
+        result = subprocess.run(
+            [sys.executable, "-m", "app.image_gen.worker", config_path],
+            capture_output=True,
+            text=True,
+            timeout=300,
         )
-        result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=300)
 
         if result.returncode == 0 and os.path.exists(output_path):
             repository.update_image_path(session_id, output_path)
             _image_status[str(session_id)] = {"status": "done", "path": output_path}
         else:
-            _image_status[str(session_id)] = {"status": "error", "path": None, "error": result.stderr[-500:]}
+            err_output = result.stderr[-500:] if result.stderr else "Image generation worker failed."
+            _image_status[str(session_id)] = {"status": "error", "path": None, "error": err_output}
     except Exception as e:
         _image_status[str(session_id)] = {"status": "error", "path": None, "error": str(e)}
+    finally:
+        if os.path.exists(config_path):
+            try:
+                os.remove(config_path)
+            except OSError:
+                pass
 
 
 if __name__ == "__main__":
-    # debug=False by default: the debug reloader spawns a second process
-    # that reloads every resident model (spaCy, emotion classifier) a
-    # second time, which is a real problem on a RAM-constrained machine
-    # (see README's RAM note). Set FLASK_DEBUG=1 if you want the reloader
-    # on a machine with more headroom.
     app.run(debug=bool(os.environ.get("FLASK_DEBUG")), port=5000)

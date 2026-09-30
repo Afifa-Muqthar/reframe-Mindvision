@@ -33,17 +33,40 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    document.getElementById("summary").textContent = data.summary;
+    // Populate Psychological Reasoning Layer
+    const reasoning = data.reasoning || {};
+    document.getElementById("reasoning-happening").textContent =
+      reasoning.what_may_be_happening || data.pattern || "Situation reflection";
+    document.getElementById("reasoning-control").textContent =
+      reasoning.what_you_can_control || "Focus on personal boundaries, support, and agency.";
+    document.getElementById("reasoning-reframe").textContent =
+      `“${reasoning.reframe || ""}”`;
+    document.getElementById("reasoning-action").textContent =
+      reasoning.next_step || "Take one manageable constructive step today.";
+
+    // Badge for external threat vs internal pattern
+    const badge = document.getElementById("threat-badge");
+    if (data.is_external_threat) {
+      badge.textContent = "Trauma-Informed Safety Focus";
+      badge.className = "badge badge-threat";
+    } else {
+      badge.textContent = "Cognitive Coping Pattern";
+      badge.className = "badge badge-cognitive";
+    }
+
+    document.getElementById("citation").textContent = `Evidence-Based Source: ${data.technique.name} — ${data.technique.citation}`;
     document.getElementById("narrative").textContent = data.narrative;
-    document.getElementById("citation").textContent = `Technique: ${data.technique.name} — ${data.technique.citation}`;
     resultSection.classList.remove("hidden");
 
+    // Audio narration player
     const audioPlayer = document.getElementById("audio-player");
     if (data.audio_url) {
       audioPlayer.src = data.audio_url;
       audioPlayer.classList.remove("hidden");
+      audioPlayer.load();
     }
 
+    // Comic strip polling
     pollImage(data.image_status_url);
   } catch (err) {
     loadingSection.classList.add("hidden");
@@ -54,17 +77,24 @@ form.addEventListener("submit", async (e) => {
 function pollImage(statusUrl) {
   const img = document.getElementById("result-image");
   const loadingText = document.getElementById("image-loading");
+  img.classList.add("hidden");
+  loadingText.classList.remove("hidden");
+
   const interval = setInterval(async () => {
-    const res = await fetch(statusUrl);
-    const data = await res.json();
-    if (data.status === "done") {
-      clearInterval(interval);
-      img.src = data.image_url;
-      img.classList.remove("hidden");
-      loadingText.classList.add("hidden");
-    } else if (data.status === "error") {
-      clearInterval(interval);
-      loadingText.textContent = "Image generation failed, but your text and audio are ready above.";
+    try {
+      const res = await fetch(statusUrl);
+      const data = await res.json();
+      if (data.status === "done") {
+        clearInterval(interval);
+        img.src = data.image_url;
+        img.classList.remove("hidden");
+        loadingText.classList.add("hidden");
+      } else if (data.status === "error") {
+        clearInterval(interval);
+        loadingText.textContent = "Comic generation failed: " + (data.error || "An error occurred during generation.");
+      }
+    } catch (e) {
+      // Continue polling
     }
   }, 2000);
 }

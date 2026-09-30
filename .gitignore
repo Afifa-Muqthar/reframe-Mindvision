@@ -1,10 +1,12 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 .env
 data/sessions/*.db
 data/sessions/*.wav
 data/sessions/*.png
+data/sessions/*.json
 data/models_cache/
 *.onnx
 huggingface_cache/

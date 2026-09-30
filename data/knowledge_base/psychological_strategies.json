@@ -1,0 +1,552 @@
+[
+  {
+    "id": "trauma_informed_safety",
+    "category": "trauma_informed",
+    "name": "Trauma-Informed Boundary & Safety Recognition",
+    "citation": "SAMHSA (2014). SAMHSA's Concept of Trauma and Guidance for a Trauma-Informed Approach. HHS Publication No. (SMA) 14-4884; NIMH (2023). Coping with Traumatic Events.",
+    "applicable_situations": ["interpersonal_threat", "unpredictable_environment", "abuse_or_hostility"],
+    "mechanism": "Validating the reality of unpredictable hostility to prevent self-doubt and gaslighting, separating responsibility for another person's actions, and centering physical and emotional safety through personal boundaries and trusted support rather than confrontation.",
+    "what_is_controllable": "Your own boundaries, emotional distance, physical safety, documenting what happened, and choosing who you reach out to for trusted support.",
+    "what_is_not_controllable": "The other person's volatile behavior, their anger, whether they act normal afterward, or trying to fix their emotional state.",
+    "reframe_template": "Their acting normal afterward does not erase what happened earlier. You don't have to convince yourself that the incident was okay just because the atmosphere is calm now. You can acknowledge what happened, recognize the pattern without blaming yourself, and prioritize what keeps you safest and most in control.",
+    "action_template": "Right now, you don't need to fix their behavior. Give yourself physical or emotional distance, write down what happened while you remember it clearly, and reach out to someone you trust if you need support.",
+    "voice_story_template": "When someone lashes out and then behaves as though nothing happened, it can leave you questioning your own reaction. But a calm moment afterward does not erase what happened before it. You don't have to take responsibility for another person's behavior. Focus instead on what you can control: your own boundaries, your safety, and reaching out to someone you trust when you need support.",
+    "safety_rule": "Do not encourage confrontation or direct argument with a volatile person. Emphasize physical and emotional safety, trusted external support, and clear boundaries.",
+    "is_external_threat": true,
+    "banned_approaches": ["gratitude_practice", "positive_reframing", "toxic_positivity", "confrontation"],
+    "comic_archetype": {
+      "context_name": "Interpersonal Safety & Unpredictable Dynamics",
+      "character": {
+        "description": "a young adult navigating a tense home environment",
+        "appearance": "short dark hair, guarded but resilient posture, attentive eyes",
+        "clothing": "wearing a comfortable dark gray hoodie and jeans"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "standing cautiously in a hallway outside a room with a tense, lingering atmosphere, looking guarded and uncertain",
+          "dialogue": "He is acting normal now... maybe I shouldn't still feel upset.",
+          "bubble_type": "thought",
+          "caption": "When someone's behavior shifts suddenly, it can leave you questioning your own reaction."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "standing by a doorway taking a calm grounding breath, looking with steady clarity, recognizing the pattern without self-blame",
+          "dialogue": "His acting normal doesn't erase what happened. I can recognize the pattern without blaming myself for it.",
+          "bubble_type": "thought",
+          "caption": "You don't have to rewrite what happened simply because the situation became calm."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "sitting in a quiet safe private room holding a phone to message a trusted friend, holding a personal journal, calm and grounded",
+          "dialogue": "I can't control his reaction. I can choose what I do next and who I turn to for support.",
+          "bubble_type": "speech",
+          "caption": "Focus on safety, support, and the parts of the situation you can control."
+        }
+      ]
+    }
+  },
+  {
+    "id": "performance_decatastrophizing",
+    "category": "cognitive",
+    "name": "Decatastrophizing & Controllable Preparation",
+    "citation": "Beck, A. T., Emery, G., & Greenberg, R. L. (1985). Anxiety Disorders and Phobias: A Cognitive Perspective. Basic Books; APA (2020). Coping with Performance and Evaluative Stress.",
+    "applicable_situations": ["performance_anxiety", "evaluation_fear", "exam_anxiety", "interview_anxiety"],
+    "mechanism": "Separating catastrophic predictions from genuine probabilities, recognizing that anxiety is an anticipated reaction rather than a guarantee of failure, and redirecting cognitive energy to tangible preparation steps.",
+    "what_is_controllable": "Your preparation, how you organize your review or interview talking points, taking rest breaks, and your physical breathing.",
+    "what_is_not_controllable": "The exact questions you will be asked, the evaluator's moods or preconceptions, or predicting the future with certainty.",
+    "reframe_template": "Feeling nervous is a natural physical response to something that matters to you, not evidence that failure is guaranteed. You don't know the exact outcome yet; you can prepare for the specific parts you directly control.",
+    "action_template": "Choose one concrete preparation task right in front of you—such as reviewing one key topic or rehearsing one response—and complete it before pausing for a break.",
+    "voice_story_template": "When an important evaluation is approaching, fear often convinces us that failure is already decided. But feeling anxious does not mean you are going to fail; it simply means this matters to you. You cannot predict the exact outcome today, but you can prepare the pieces within your control. Focus on taking one structured step forward right now.",
+    "safety_rule": "Encourage realistic expectations and adequate sleep rather than unhealthy all-night cramming or panic-driven avoidance.",
+    "is_external_threat": false,
+    "banned_approaches": ["toxic_positivity", "guaranteed_success_promises"],
+    "comic_archetype": {
+      "context_name": "Performance & Evaluative Challenges",
+      "character": {
+        "description": "a focused young adult preparing for an evaluation",
+        "appearance": "short dark hair, expressive focused eyes, earnest posture",
+        "clothing": "wearing a navy blue knit sweater and dark trousers"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting at a desk with an interview schedule and notes, hands gripping head in anxiety, dim room with harsh screen glow",
+          "dialogue": "I keep telling myself I'm going to freeze and fail completely.",
+          "bubble_type": "thought",
+          "caption": "When a high-stakes moment approaches, anticipation can easily turn into catastrophic prediction."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "sitting back slightly in chair, taking a slow deliberate breath, looking objectively at structured notes with steady focus",
+          "dialogue": "Being nervous means this matters to me, not that failure is guaranteed. I'll focus on what I can prepare.",
+          "bubble_type": "thought",
+          "caption": "Anxiety is an emotional signal, not a forecast of what is certain to happen."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "sitting upright at an organized desk, reviewing three key points on a notepad with calm confidence, warm daylight",
+          "dialogue": "I'll practice my main talking points once, then give my mind time to rest.",
+          "bubble_type": "speech",
+          "caption": "Channel nervous energy into one manageable piece of preparation."
+        }
+      ]
+    }
+  },
+  {
+    "id": "rejection_checking_assumptions",
+    "category": "cognitive",
+    "name": "Checking Assumptions & De-escalating Mind-Reading",
+    "citation": "Linehan, M. M. (1993). Cognitive-Behavioral Treatment of Borderline Personality Disorder. Guilford Press; APA (2018). Interpersonal Effectiveness & Social Anxiety.",
+    "applicable_situations": ["rejection_sensitivity", "mind_reading", "social_exclusion_fear"],
+    "mechanism": "Differentiating between observable facts (e.g., someone hasn't replied yet) and internal interpretations (e.g., 'they hate me'). Prevents social withdrawal and catastrophic assumptions regarding interpersonal connection.",
+    "what_is_controllable": "Your own time, activities, how you care for yourself right now, and communicating directly if appropriate later.",
+    "what_is_not_controllable": "Another person's immediate availability, their schedule, work pressures, or how quickly they check their phone.",
+    "reframe_template": "An unanswered message or silence is an absence of information, not proof of rejection. People are often busy, preoccupied, or overwhelmed by their own day. You don't have to fill the silence with the worst possible assumption.",
+    "action_template": "Step away from the screen, engage in an engaging offline task or talk to another supportive contact, and give the situation time to breathe without jumping to conclusions.",
+    "voice_story_template": "When someone doesn't reply or seems distant, it's easy for our minds to fill in the blank with rejection. But silence is simply a pause, not proof that someone dislikes you. You cannot control when other people reply, but you can control what you do with your time. Step back, breathe, and focus on your own afternoon.",
+    "safety_rule": "Avoid advising passive-aggressive texting or frantic double-messaging. Encourage patience and healthy social grounding.",
+    "is_external_threat": false,
+    "banned_approaches": ["guaranteeing_they_love_you", "toxic_positivity"],
+    "comic_archetype": {
+      "context_name": "Social Communication & Interpersonal Connection",
+      "character": {
+        "description": "a young adult holding their phone, navigating social anxiety",
+        "appearance": "wavy brown hair, sensitive expressive features, casual posture",
+        "clothing": "wearing an olive green casual jacket and blue jeans"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting on a living room armchair staring anxiously down at a quiet smartphone screen, dim shadows in the room",
+          "dialogue": "They haven't texted back all day... everyone must be getting tired of me.",
+          "bubble_type": "thought",
+          "caption": "Silence from someone we care about often triggers our deepest assumptions of rejection."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "setting the phone down on a wooden coffee table face down, taking a deep breath, looking out the window",
+          "dialogue": "Silence is just an unanswered message, not proof they hate me. They could be busy or overwhelmed.",
+          "bubble_type": "thought",
+          "caption": "Separate the objective fact of silence from the story your anxiety creates around it."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "standing up in a sunlit kitchen making a cup of tea, looking relaxed and focused on personal interests",
+          "dialogue": "I'll let them respond in their own time and focus on enjoying my own evening.",
+          "bubble_type": "speech",
+          "caption": "Give relationships room to breathe while attending to your own present wellbeing."
+        }
+      ]
+    }
+  },
+  {
+    "id": "rumination_cognitive_defusion",
+    "category": "stress_regulation",
+    "name": "Cognitive Defusion & Regret Release",
+    "citation": "Hayes, S. C., Strosahl, K. D., & Wilson, K. G. (1999). Acceptance and Commitment Therapy: An Experiential Approach to Behavior Change. Guilford Press; Nolen-Hoeksema, S. (2000). The role of rumination in depressive disorders.",
+    "applicable_situations": ["rumination", "past_regret", "replaying_embarrassment", "shame_spirals"],
+    "mechanism": "Recognizing that mentally replaying a past moment cannot alter it. Stepping back to observe repetitive thoughts as passing mental events rather than urgent commands to analyze, freeing attention for present constructive action.",
+    "what_is_controllable": "Where you direct your attention right now, self-kindness toward past human mistakes, and choices in the present moment.",
+    "what_is_not_controllable": "The event that already happened yesterday, the words already said, or erasing past discomfort instantly.",
+    "reframe_template": "Replaying the past over and over feels like solving a problem, but it is actually just keeping the discomfort alive. What happened occurred in the past; you cannot edit yesterday, but you can choose what receives your attention right now.",
+    "action_template": "Name the thought gently ('I notice I am replaying yesterday'), take three physical grounding breaths, and engage your senses in an immediate sensory activity.",
+    "voice_story_template": "When a past mistake or awkward moment replays in your head, it can feel like you need to solve it again. But replaying the memory cannot change what happened; it only drains your energy in the present. Acknowledge that you are human, let the thought pass without fighting it, and bring your focus gently back to where your feet are right now.",
+    "safety_rule": "Ground in the immediate present environment if rumination escalates into intense shame.",
+    "is_external_threat": false,
+    "banned_approaches": ["dismissing_as_unimportant", "toxic_positivity"],
+    "comic_archetype": {
+      "context_name": "Releasing Rumination & Past Regret",
+      "character": {
+        "description": "a young adult dealing with repetitive thoughts about past events",
+        "appearance": "medium dark hair, reflective eyes, thoughtful expression",
+        "clothing": "wearing a comfortable cream knit sweater and dark pants"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting on the edge of a bed replaying a past scene in head, cringing with regret, shadows cast across the wall",
+          "dialogue": "I keep replaying what happened yesterday over and over. Why did I say that?",
+          "bubble_type": "thought",
+          "caption": "Replaying the past can feel like problem-solving, but it often just traps us in regret."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "standing by an open window, feeling a gentle breeze, placing a hand on chest with self-compassion",
+          "dialogue": "Replaying it won't change yesterday. I can allow myself to be human and learn without punishment.",
+          "bubble_type": "thought",
+          "caption": "You cannot rewrite yesterday, but you can choose not to punish yourself in the present."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "sitting at a clean wooden table drinking a glass of cool water, sketching or journaling calmly in bright light",
+          "dialogue": "I'm letting that moment go. I'm focusing on what's right here in front of me.",
+          "bubble_type": "speech",
+          "caption": "Gently redirect your attention to what is real and actionable right now."
+        }
+      ]
+    }
+  },
+  {
+    "id": "self_criticism_restructuring",
+    "category": "cognitive",
+    "name": "Self-Compassionate Restructuring",
+    "citation": "Neff, K. D. (2003). Self-compassion: An alternative conceptualization of a healthy attitude toward oneself. Self and Identity; Beck, A. T. (1979). Cognitive Therapy of Depression.",
+    "applicable_situations": ["self_criticism", "overgeneralization", "harsh_self_judgment", "feeling_useless"],
+    "mechanism": "Separating a single setback or mistake from one's entire identity and worth. Replacing punitive internal criticism with constructive, balanced accountability and kindness.",
+    "what_is_controllable": "The specific task to correct or learn from, your self-talk, and asking for clarification or help.",
+    "what_is_not_controllable": "Expecting yourself to never make an error, or having flawless performance at all times.",
+    "reframe_template": "Making a mistake or encountering a setback is an isolated event, not a permanent definition of who you are. Struggling with a challenge does not make you useless or incapable; it means you are learning something difficult.",
+    "action_template": "Speak to yourself with the same constructive patience you would offer a trusted friend, and identify one small corrective step rather than attacking your character.",
+    "voice_story_template": "When you make a mistake, self-criticism can quickly escalate into harsh labels like being a failure or useless. But a single setback does not define your worth or capability. Mistakes are part of being human. Treat yourself with the same patience you would give someone you care about, and take one constructive step forward.",
+    "safety_rule": "If harsh self-labeling borders on active hopelessness or self-harm, screen immediately for crisis support.",
+    "is_external_threat": false,
+    "banned_approaches": ["harsh_motivation", "punitive_discipline"],
+    "comic_archetype": {
+      "context_name": "Overcoming Harsh Self-Criticism",
+      "character": {
+        "description": "a young adult learning to replace self-judgment with balanced kindness",
+        "appearance": "short dark hair, earnest features, gentle expression",
+        "clothing": "wearing a teal crewneck sweatshirt and dark jeans"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting slumped over a desk with crossed-out work, head in hands with harsh self-disappointment",
+          "dialogue": "I messed up once, so that must mean I'm completely useless at this.",
+          "bubble_type": "thought",
+          "caption": "A single mistake can quickly be magnified into a harsh verdict on our entire worth."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "sitting upright, placing pen down calmly, looking at the work with objective and compassionate eyes",
+          "dialogue": "Messing up is a single event, not my whole identity. I can make an error and still be capable.",
+          "bubble_type": "thought",
+          "caption": "Separate an isolated event from your fundamental value as a person."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "calmly writing a small correction on a fresh sheet of paper, soft warm desk lamp illumination",
+          "dialogue": "I'll fix this one specific error patiently, step by step.",
+          "bubble_type": "speech",
+          "caption": "Respond to setbacks with constructive adjustment rather than harsh self-punishment."
+        }
+      ]
+    }
+  },
+  {
+    "id": "uncertainty_grounding_control",
+    "category": "stress_regulation",
+    "name": "Locus of Control & Grounding in Uncertainty",
+    "citation": "Rotter, J. B. (1966). Generalized expectancies for internal versus external control. Psychological Monographs; APA (2021). Managing Uncertainty in Stressful Times.",
+    "applicable_situations": ["uncertainty", "lack_of_control", "threat_anticipation", "future_fear"],
+    "mechanism": "Mapping ambiguous stressors into what is truly within personal agency versus what is uncontrollable. Grounding physiological arousal in the present to reduce threat vigilance.",
+    "what_is_controllable": "Your current physical safety, your daily routine, how you spend the next hour, and asking for factual information.",
+    "what_is_not_controllable": "How the unpredictable future unfolds, circumstances outside your agency, or other people's decisions.",
+    "reframe_template": "Not knowing what will happen is deeply uncomfortable, but uncertainty does not automatically mean catastrophe. You do not need to figure out the next five years today; you only need to navigate the hour in front of you.",
+    "action_template": "Anchor your feet firmly on the ground, take a steady breath, and complete one simple routine action—like drinking water or tidying your immediate space.",
+    "voice_story_template": "When the future feels ambiguous, our minds naturally search for threats, making uncertainty feel dangerous. But not knowing what lies ahead does not mean something bad is bound to happen. You don't have to carry the whole future today. Ground yourself in what is real and safe right now, and take this one hour at a time.",
+    "safety_rule": "Focus on immediate predictability and steady routines when uncertainty causes acute distress.",
+    "is_external_threat": false,
+    "banned_approaches": ["guaranteeing_everything_will_be_fine", "toxic_positivity"],
+    "comic_archetype": {
+      "context_name": "Navigating Ambiguity & Future Uncertainty",
+      "character": {
+        "description": "a young adult experiencing anxiety about the unknown future",
+        "appearance": "dark hair, watchful eyes, slightly tense posture",
+        "clothing": "wearing a comfortable gray sweater and dark casual pants"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "standing in a room looking out into an overcast, foggy horizon, shoulders tense with apprehension",
+          "dialogue": "I have no idea what is going to happen next. What if everything falls apart?",
+          "bubble_type": "thought",
+          "caption": "Uncertainty can make our minds anticipate danger where there is only ambiguity."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "taking a step back into the warm room, placing hand over stomach and breathing steadily, grounded posture",
+          "dialogue": "Not knowing the future is uncomfortable, but it doesn't mean disaster is certain. I can handle today.",
+          "bubble_type": "thought",
+          "caption": "You do not need to solve the entire future; you only need to manage the present moment."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "sitting at a tidy kitchen table writing down two manageable tasks for today, bright clear daylight",
+          "dialogue": "I will focus on the small routine tasks I can control today and take it one hour at a time.",
+          "bubble_type": "speech",
+          "caption": "Anchor your agency in the present rather than wrestling with the unknown."
+        }
+      ]
+    }
+  },
+  {
+    "id": "loss_attachment_compassion",
+    "category": "social_coping",
+    "name": "Compassionate Grief Processing & Attachment Support",
+    "citation": "Bowlby, J. (1980). Loss: Sadness and Depression; APA (2019). Grieving Relationships & Emotional Distress.",
+    "applicable_situations": ["breakup", "relationship_loss", "grief", "attachment_distress"],
+    "mechanism": "Validating the genuine pain of disconnection as a natural attachment response rather than personal deficiency. Encouraging self-soothing, steady routines, and connection with safe friends rather than isolation.",
+    "what_is_controllable": "Allowing yourself space to feel sad without self-blame, maintaining sleep and meals, and turning to trusted friends or family.",
+    "what_is_not_controllable": "The other person's decisions, undoing the past, or rushing the natural timeline of emotional recovery.",
+    "reframe_template": "The grief you feel is proof of your capacity to care, not evidence that you are unlovable or broken. Healing from loss takes time and comes in waves; you do not have to force yourself to 'just get over it' today.",
+    "action_template": "Wrap yourself in something warm, allow yourself to rest without judgment, and reach out to one safe person just to share presence without having to perform.",
+    "voice_story_template": "Going through a breakup or deep loss shakes your sense of safety and routine. It makes complete sense that you can't stop thinking about it—grief is love with nowhere to go. You don't have to pretend everything is fine today. Be gentle with your heart, take care of your basic needs, and let a trusted friend stand by your side.",
+    "safety_rule": "Validate emotional sorrow without encouraging intrusive contact or stalking behaviors.",
+    "is_external_threat": false,
+    "banned_approaches": ["plenty_of_fish_in_the_sea", "gratitude_practice"],
+    "comic_archetype": {
+      "context_name": "Emotional Healing & Loss of Relationship",
+      "character": {
+        "description": "a young adult healing from relationship heartbreak",
+        "appearance": "soft wavy hair, sorrowful but gentle eyes, weary posture",
+        "clothing": "wearing an oversized warm knitted cardigan and lounge pants"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting curled up on a sofa holding a pillow, staring into space with quiet sorrow, evening shadows",
+          "dialogue": "I can't stop thinking about the breakup. It feels like an unbearable emptiness.",
+          "bubble_type": "thought",
+          "caption": "Loss shakes our daily world and leaves us longing for what used to be familiar."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "sitting gently holding a warm mug with both hands, taking a soft slow breath, gentle expression",
+          "dialogue": "Hurting this much means I genuinely cared. Grieving takes time, and that is okay.",
+          "bubble_type": "thought",
+          "caption": "Allowing yourself to feel sorrow with compassion is how healing begins."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "standing by an open door greeting a warm, supportive friend with a small comforted smile",
+          "dialogue": "I don't have to go through this alone. I'll take a short walk with someone who cares about me.",
+          "bubble_type": "speech",
+          "caption": "Lean on trusted support and take care of your heart one day at a time."
+        }
+      ]
+    }
+  },
+  {
+    "id": "overwhelm_micro_action",
+    "category": "problem_focused",
+    "name": "Micro-Action & Overwhelm Reduction",
+    "citation": "D'Zurilla, T. J., & Nezu, A. M. (2007). Problem-Solving Therapy. Springer; APA (2020). Coping with Stress & Cognitive Overload.",
+    "applicable_situations": ["task_overwhelm", "paralysis", "too_many_things", "executive_dysfunction"],
+    "mechanism": "Interrupting analysis paralysis caused by looking at an entire mountain of tasks. Shrinking focus strictly down to a single 5-minute micro-action to bypass cognitive overload and rebuild momentum.",
+    "what_is_controllable": "Choosing just ONE tiny physical action right now, setting a 5-minute timer, and giving yourself permission to ignore the rest for twenty minutes.",
+    "what_is_not_controllable": "Finishing all twenty obligations in a single afternoon, or instantly eliminating all project demands at once.",
+    "reframe_template": "You do not have to conquer all twenty tasks simultaneously. You only need to touch one small corner of one task. Momentum does not come before starting; starting one tiny action is what creates momentum.",
+    "action_template": "Pick the simplest sub-task on your list—something that takes under 5 minutes. Put everything else out of sight, set a timer, and do just that one thing.",
+    "voice_story_template": "When your to-do list feels endless, your brain treats it like an impossible wall, leaving you paralyzed. But you don't have to complete twenty things right now. You only need to take one micro-step. Pick the smallest, easiest piece, set aside the rest for a moment, and let one simple action get you moving again.",
+    "safety_rule": "Avoid setting large, perfectionistic multi-hour study goals when the person is actively frozen.",
+    "is_external_threat": false,
+    "banned_approaches": ["just_work_harder", "toxic_positivity"],
+    "comic_archetype": {
+      "context_name": "Breaking Task Overwhelm & Starting Momentum",
+      "character": {
+        "description": "a young adult overwhelmed by a mountain of responsibilities",
+        "appearance": "tousled dark hair, tired eyes, slumped posture surrounded by tasks",
+        "clothing": "wearing a casual hoodie and sweatpants"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting at a desk cluttered with open tabs, to-do lists, and sticky notes, frozen in paralysis",
+          "dialogue": "I have twenty things to do and I'm so overwhelmed I can't even begin.",
+          "bubble_type": "thought",
+          "caption": "Looking at everything all at once overwhelms the brain and creates paralysis."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "pushing aside all but one small notepad, taking a deliberate breath, focusing on a single line item",
+          "dialogue": "I don't need to finish everything today. I only need to do one five-minute task.",
+          "bubble_type": "thought",
+          "caption": "Break the wall down into a single brick. Momentum follows action, not perfection."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "setting a phone timer for five minutes, picking up a pen and writing the first sentence with clear focus",
+          "dialogue": "I'll spend five minutes on this one step, and celebrate making a start.",
+          "bubble_type": "speech",
+          "caption": "One small step forward is enough to break the freeze and start momentum."
+        }
+      ]
+    }
+  },
+  {
+    "id": "social_comparison_values",
+    "category": "cognitive",
+    "name": "Values Clarification & Comparison Defusion",
+    "citation": "Hayes, S. C. et al. (1999). Acceptance and Commitment Therapy; Festinger, L. (1954). A theory of social comparison processes.",
+    "applicable_situations": ["social_comparison", "inferiority_feelings", "imposter_syndrome", "peer_pressure"],
+    "mechanism": "Recognizing that social comparisons juxtapose one's internal messy reality against another person's curated external highlight reel. Re-anchoring focus to personal, intrinsic values rather than external status metrics.",
+    "what_is_controllable": "Your own values, your personal definitions of meaningful progress, and muting triggers that provoke comparison.",
+    "what_is_not_controllable": "What other people choose to showcase, their timelines, advantages, or achievements.",
+    "reframe_template": "You are comparing your behind-the-scenes struggles to everyone else's public highlight reel. Another person's success does not diminish your worth or speed. Your journey has its own unique context, pacing, and value.",
+    "action_template": "Put down social media, write down two things that genuinely matter to you independent of anyone else's approval, and honor your own pace today.",
+    "voice_story_template": "When you look around and feel like everyone is achieving more or moving faster, it is easy to feel inadequate. But you are comparing your daily reality to other people's curated highlights. Life is not a race against others. Step back from the comparisons, honor your own timeline, and focus on the personal values that matter to you.",
+    "safety_rule": "Emphasize intrinsic values rather than competing harder to prove superiority.",
+    "is_external_threat": false,
+    "banned_approaches": ["prove_them_wrong", "toxic_positivity"],
+    "comic_archetype": {
+      "context_name": "Reclaiming Self-Worth from Social Comparison",
+      "character": {
+        "description": "a young adult comparing themselves to peers online",
+        "appearance": "short hair, sensitive focused eyes, contemplative posture",
+        "clothing": "wearing a denim button-up shirt and dark jeans"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "scrolling on a tablet looking at achievements of others, feeling small and left behind, dim cool lighting",
+          "dialogue": "Everyone is doing so much better than me. I'm falling hopelessly behind.",
+          "bubble_type": "thought",
+          "caption": "Comparing your journey to another person's highlights makes you feel behind."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "setting the tablet face down on a wooden table, taking a quiet grounding breath, looking at personal art or notes",
+          "dialogue": "Their success doesn't mean I am failing. My journey has its own pace and meaningful path.",
+          "bubble_type": "thought",
+          "caption": "Someone else's pace does not define your progress or your personal value."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "working happily on a personal project with calm smile, warm natural light streaming through the room",
+          "dialogue": "I will celebrate my own small milestones and walk my own path with patience.",
+          "bubble_type": "speech",
+          "caption": "Anchor your sense of worth in what is true and meaningful to your own life."
+        }
+      ]
+    }
+  },
+  {
+    "id": "burnout_physiological_regulation",
+    "category": "stress_regulation",
+    "name": "Physiological Down-Regulation & Rest Permission",
+    "citation": "APA (2022). Stress and Recovery in Burnout; Porges, S. W. (2011). The Polyvagal Theory.",
+    "applicable_situations": ["burnout", "exhaustion", "physical_depletion", "chronic_stress"],
+    "mechanism": "Validating physical exhaustion as biological feedback that nervous system resources are depleted, rather than moral failure or lack of discipline. Giving unreserved permission for restorative downtime.",
+    "what_is_controllable": "Allowing yourself to stop pushing, taking a horizontal rest, drinking water, and scheduling restorative sleep.",
+    "what_is_not_controllable": "Forcing your nervous system to operate on empty reserves through sheer willpower.",
+    "reframe_template": "Your exhaustion is not laziness or weakness; it is your body's vital physiological signal that your battery is empty. Rest is not a reward you have to earn after collapsing; it is the biological prerequisite for functioning at all.",
+    "action_template": "Close your eyes, lower your shoulders away from your ears, and give yourself full, unapologetic permission to rest for 30 minutes without guilt.",
+    "voice_story_template": "When you are completely burnt out, trying to force productivity only increases your distress. Your tiredness is not a flaw in your willpower; it is your body telling you that you have given everything you had. Listen to that signal. Giving yourself permission to rest is not quitting—it is how your nervous system heals and restores.",
+    "safety_rule": "Ensure the user prioritizes physical safety, hydration, and sleep.",
+    "is_external_threat": false,
+    "banned_approaches": ["push_through_it", "gratitude_practice"],
+    "comic_archetype": {
+      "context_name": "Restorative Recovery from Physical Burnout",
+      "character": {
+        "description": "a weary young adult recovering from intense burnout",
+        "appearance": "messy dark hair, tired but gentle eyes, weary posture",
+        "clothing": "wearing a soft comfortable knit lounge sweater and soft pants"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting on the edge of a bed holding head in hands, completely drained and exhausted, dim bedroom",
+          "dialogue": "I'm completely drained, but I feel guilty if I stop working.",
+          "bubble_type": "thought",
+          "caption": "Chronic exhaustion makes us feel guilty for needing the very rest our bodies require."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "leaning back comfortably against pillows, hands resting gently on lap, taking a slow soothing breath",
+          "dialogue": "Rest is not giving up. My body genuinely needs recovery, and I have permission to stop.",
+          "bubble_type": "thought",
+          "caption": "Rest is biological maintenance, not a luxury that must be earned through collapse."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "lying comfortably with eyes closed in soft golden afternoon light, peaceful resting expression",
+          "dialogue": "I'm turning off the pressure and allowing my body to recharge peacefully.",
+          "bubble_type": "speech",
+          "caption": "Allow your nervous system to down-regulate and recover without guilt."
+        }
+      ]
+    }
+  },
+  {
+    "id": "general_grounded_perspective",
+    "category": "cognitive",
+    "name": "Grounded Perspective & Balanced Action",
+    "citation": "APA (2020). Evidence-Based Stress Management; Beck, A. T. (1979). Cognitive Therapy.",
+    "applicable_situations": ["general_stress", "self_doubt", "unspecified_worry"],
+    "mechanism": "Validating the emotional weight of a difficult moment, checking whether thoughts are assuming worst-case scenarios, and identifying one realistic constructive action within personal agency.",
+    "what_is_controllable": "Your response today, taking care of yourself, and one constructive next action.",
+    "what_is_not_controllable": "Past events or fixing everything all at once.",
+    "reframe_template": "Having doubts or feeling unsettled is a normal human experience. You do not have to have everything figured out right now; you can take one small step and let the rest unfold in time.",
+    "action_template": "Take a deep breath, write down the one single thing that would help you feel most steady right now, and take care of it with kindness.",
+    "voice_story_template": "When a situation feels heavy or confusing, it is easy to feel weighed down by self-doubt. But you do not have to solve your entire life today. Take a pause, acknowledge how you feel, and remember that you only need to take one small constructive step right now.",
+    "safety_rule": "Keep recommendations manageable, grounded, and empathetic.",
+    "is_external_threat": false,
+    "banned_approaches": ["toxic_positivity", "blind_gratitude"],
+    "comic_archetype": {
+      "context_name": "Personal Clarity & Grounded Growth",
+      "character": {
+        "description": "a relatable young adult finding clarity through self-reflection",
+        "appearance": "short dark hair, expressive eyes, grounded posture",
+        "clothing": "wearing a comfortable forest green sweater and dark trousers"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting by a wooden table looking thoughtfully burdened, head slightly bowed in quiet stress",
+          "dialogue": "Everything feels confusing and heavy right now.",
+          "bubble_type": "thought",
+          "caption": "When stressors pile up, it is easy to feel stuck and uncertain."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "pausing with hands resting open on table, taking a slow grounding breath, warm ambient light",
+          "dialogue": "Feeling unsure doesn't mean I am stuck. I can take this one step at a time.",
+          "bubble_type": "thought",
+          "caption": "Acknowledge the difficulty without letting it overwhelm your sense of agency."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "standing upright by a sunlit window with a calm steady posture, holding a glass of water",
+          "dialogue": "I will take one small constructive step today and be patient with myself.",
+          "bubble_type": "speech",
+          "caption": "Focus your energy on one manageable action and move forward with patience."
+        }
+      ]
+    }
+  }
+]
