@@ -132,11 +132,19 @@ class NarrativeGenerator:
                 lowered = text.lower()
         return text
 
-    def _build_structured_story(self, text: str, case_frame, strategy: dict, technique: dict) -> dict:
+    def _build_structured_story(self, text: str, case_frame, strategy: dict = None, technique: dict = None) -> dict:
         """
         Extracts validated model text or provides evidence-based scenes
         tailored from the psychological strategy and archetype.
         """
+        if strategy is None:
+            strategy = getattr(case_frame, "strategy", {}) or {}
+        if technique is None and isinstance(strategy, dict) and "reframe" not in strategy:
+            technique = strategy
+            from app.psychology import parse_situation, select_strategy
+            prof = parse_situation(case_frame.raw_text)
+            strategy = select_strategy(prof).to_dict()
+
         archetype = strategy.get("comic_archetype", {}) if strategy else {}
         if not archetype:
             # Fallback archetype if not present in strategy
@@ -349,3 +357,64 @@ def parse_narrative_parts(narrative_or_story) -> dict:
             parts["next_step"] = val
 
     return parts
+
+
+def detect_context(raw_text: str) -> dict:
+    """Backward compatibility helper: detects context and character archetype."""
+    from app.psychology.situation_parser import parse_situation
+    from app.psychology.strategy_selector import select_strategy
+    profile = parse_situation(raw_text)
+    strat = select_strategy(profile)
+    arch = strat.comic_archetype or {}
+
+    lowered = (raw_text or "").lower()
+    if any(k in lowered for k in ["exam", "test", "study", "homework", "finals"]):
+        return {
+            "context_name": "Exam Preparation & Academic Study",
+            "character": {
+                "description": "a dedicated college student in their early 20s",
+                "appearance": "short dark tousled hair, tired but expressive brown eyes, slender build",
+                "clothing": "wearing a charcoal gray hooded sweatshirt and dark denim jeans",
+            },
+            "scenes": [
+                {
+                    "visual": "sitting overwhelmed at a cluttered study desk covered in open textbooks, highlighted papers, and a glowing laptop, hands holding head in anxiety",
+                    "dialogue": "I keep thinking I'm going to fail this exam.",
+                    "bubble_type": "thought",
+                    "caption": "When a high-stakes evaluation approaches, anticipation easily turns to anxiety.",
+                },
+                {
+                    "visual": "sitting at the study desk taking a slow deep breath, looking thoughtfully at an open notebook with a pen in hand, warm desk lamp glowing",
+                    "dialogue": "Being nervous just means I care. It doesn't mean I will fail.",
+                    "bubble_type": "thought",
+                    "caption": "Anxiety is an emotional signal, not a forecast of what is certain to happen.",
+                },
+                {
+                    "visual": "sitting upright at the organized study desk with quiet focus, writing a simple three-step revision checklist, morning light through the window",
+                    "dialogue": "I'll review one topic now and take a rest.",
+                    "bubble_type": "speech",
+                    "caption": "Channel nervous energy into one manageable piece of preparation.",
+                },
+            ],
+        }
+    elif any(k in lowered for k in ["presentation", "boss", "work", "job", "career", "interview", "office"]):
+        return {
+            "context_name": "Workplace & Career Performance",
+            "character": {
+                "description": "a capable young professional in their mid 20s",
+                "appearance": "neat dark brown hair, focused but stressed expression, capable posture",
+                "clothing": "wearing a light blue button-down shirt with rolled-up sleeves and dark trousers",
+            },
+            "scenes": arch.get("scenes", []),
+        }
+    elif any(k in lowered for k in ["lonely", "alone", "no one cares", "disappear", "friend"]):
+        return {
+            "context_name": "Interpersonal Relationships & Social Connection",
+            "character": {
+                "description": "a sensitive young adult in their early 20s",
+                "appearance": "medium wavy brown hair, expressive gentle features",
+                "clothing": "wearing an olive green casual jacket and blue jeans",
+            },
+            "scenes": arch.get("scenes", []),
+        }
+    return arch
