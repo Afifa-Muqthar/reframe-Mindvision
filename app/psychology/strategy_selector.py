@@ -97,6 +97,11 @@ def select_strategy(profile: PsychologicalProfile) -> PsychologicalStrategy:
     controllable = profile.controllable or chosen.get("what_is_controllable", "")
     uncontrollable = profile.uncontrollable or chosen.get("what_is_not_controllable", "")
 
+    # Populate 8-field structured reasoning into the profile
+    profile.coping_strategy_name = chosen["name"]
+    profile.specific_reframe = reframe_text
+    profile.concrete_next_step = action_text
+
     return PsychologicalStrategy(
         id=chosen["id"],
         category=chosen.get("category", "cognitive"),

@@ -48,8 +48,10 @@ def run_worker(config_path: str):
     try:
         # 1. Generate SD-Turbo panel artwork sequentially
         gen = ImageGenerator()
+        base_seed = seed
         for i, (prompt, path) in enumerate(zip(prompts, panel_paths)):
-            gen.generate(prompt, path, seed=seed, num_inference_steps=steps)
+            panel_seed = (base_seed + i * 17) if base_seed is not None else None
+            gen.generate(prompt, path, seed=panel_seed, num_inference_steps=steps)
         gen.unload()
 
         # 2. Composite comic strip with borders, bubbles, and captions

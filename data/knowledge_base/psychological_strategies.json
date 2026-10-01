@@ -304,7 +304,7 @@
     "category": "social_coping",
     "name": "Compassionate Grief Processing & Attachment Support",
     "citation": "Bowlby, J. (1980). Loss: Sadness and Depression; APA (2019). Grieving Relationships & Emotional Distress.",
-    "applicable_situations": ["breakup", "relationship_loss", "grief", "attachment_distress"],
+    "applicable_situations": ["breakup", "relationship_loss", "grief", "attachment_distress", "loss_and_grief"],
     "mechanism": "Validating the genuine pain of disconnection as a natural attachment response rather than personal deficiency. Encouraging self-soothing, steady routines, and connection with safe friends rather than isolation.",
     "what_is_controllable": "Allowing yourself space to feel sad without self-blame, maintaining sleep and meals, and turning to trusted friends or family.",
     "what_is_not_controllable": "The other person's decisions, undoing the past, or rushing the natural timeline of emotional recovery.",
@@ -345,6 +345,56 @@
           "dialogue": "I don't have to go through this alone. I'll take a short walk with someone who cares about me.",
           "bubble_type": "speech",
           "caption": "Lean on trusted support and take care of your heart one day at a time."
+        }
+      ]
+    }
+  },
+  {
+    "id": "relationship_ambivalence_grief",
+    "category": "cognitive_grief",
+    "name": "Ambivalence-Informed Grief & Separation Acceptance",
+    "citation": "Stroebe, M., & Schut, H. (1999). The Dual Process Model of Coping with Bereavement. Clinical Psychology Review; APA (2021). Coping with Relationship Dissolution and Ambivalence.",
+    "applicable_situations": ["relationship_ambivalence", "breakup_ambivalence", "breakup_uncertainty", "separation_guilt"],
+    "mechanism": "Validating separation pain as a natural emotional response to an ending rather than evidence of a mistake, decoupling grief from romantic compatibility, and holding space for honest uncertainty without rushing to declare the breakup definitely right or wrong.",
+    "what_is_controllable": "Allowing yourself to feel sad and grieve the ending without demanding immediate certainty, giving the separation time to settle, and treating yourself with self-compassion.",
+    "what_is_not_controllable": "Having 100% certainty right now, forcing romantic feelings that were genuinely absent, or avoiding the natural sorrow of an ending.",
+    "reframe_template": "Feeling pain after a breakup does not by itself prove that the relationship should have continued. You can acknowledge that you cared about this person and feel genuine loss, while also honoring that your uncertainty and doubts were real.",
+    "action_template": "Give yourself permission to feel the sadness of the ending today without rushing to judge whether the breakup was definitely right or wrong.",
+    "voice_story_template": "Ending a relationship when your feelings are uncertain brings a confusing kind of grief. It is completely normal to feel sadness, doubt, and pain. But feeling hurt after a separation does not prove the relationship was right for you. You can care deeply about someone while also acknowledging that your uncertainty about love was honest and real. Give yourself space to feel the grief today without having to resolve every question right now.",
+    "safety_rule": "Validate ambivalence and sorrow without pushing for premature reconnection or self-blaming rumination.",
+    "is_external_threat": false,
+    "banned_approaches": ["toxic_positivity", "certainty_forcing", "you_will_definitely_find_someone"],
+    "comic_archetype": {
+      "context_name": "Relationship Ambivalence & Separation Grief",
+      "character": {
+        "description": "a thoughtful young adult processing a breakup with honest reflection",
+        "appearance": "gentle dark brown hair, contemplative eyes, reflective posture",
+        "clothing": "wearing a comfortable olive green knit cardigan and dark pants"
+      },
+      "scenes": [
+        {
+          "stage": "problem",
+          "title": "1. PROBLEM",
+          "visual": "sitting near a quiet window looking thoughtfully at a warm mug, burdened by grief and ambivalence",
+          "dialogue": "It hurts so much... but I was so uncertain if I loved him.",
+          "bubble_type": "thought",
+          "caption": "Grief naturally follows an ending, even when uncertainty was genuine."
+        },
+        {
+          "stage": "reframing",
+          "title": "2. REFRAMING",
+          "visual": "setting the mug down and taking a slow gentle breath, looking out with soft compassionate clarity",
+          "dialogue": "Feeling pain doesn't mean the breakup was wrong. I can care about him and still honor my doubts.",
+          "bubble_type": "thought",
+          "caption": "Pain reflects that you cared, not that the relationship should have continued."
+        },
+        {
+          "stage": "resolution",
+          "title": "3. RESOLUTION",
+          "visual": "standing upright by the window looking at the open sky with gentle self-compassion, soft morning light",
+          "dialogue": "I don't have to force certainty today. I'll let myself feel sad and take one quiet breath.",
+          "bubble_type": "speech",
+          "caption": "Give yourself permission to grieve without rushing to prove your decision right or wrong."
         }
       ]
     }

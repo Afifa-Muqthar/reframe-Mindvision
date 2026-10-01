@@ -1,0 +1,22 @@
+{
+  "device": "NVIDIA GeForce RTX 3050 A Laptop GPU",
+  "dtype": "torch.float16",
+  "resolution": "512x512",
+  "num_inference_steps": 1,
+  "guidance_scale": 0.0,
+  "seed": 42,
+  "generation_time_seconds": 2.032,
+  "peak_torch_vram_mb": 3097.0,
+  "gpu_telemetry_before": {
+    "temp_c": 49,
+    "mem_used_mb": 0,
+    "mem_total_mb": 4094
+  },
+  "gpu_telemetry_after": {
+    "temp_c": 55,
+    "mem_used_mb": 3581,
+    "mem_total_mb": 4094
+  },
+  "output_image_path": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\diagnostic_512_fp16_step1.png",
+  "prompt": "young woman with short dark hair in green sweater, sitting on bed holding smartphone with both hands, looking down at message thread, quiet bedroom with desk and window, soft evening light, vibrant comic book art, crisp ink lines, flat cel shading"
+}

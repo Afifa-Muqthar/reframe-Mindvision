@@ -1,0 +1,32 @@
+{
+  "scenario": "breakup_uncertainty",
+  "total_panels": 5,
+  "total_generation_time_seconds": 5.065,
+  "total_pipeline_time_seconds": 5.258,
+  "per_panel_timings_seconds": [
+    2.014,
+    0.673,
+    0.581,
+    0.692,
+    0.586
+  ],
+  "peak_vram_mb": 3096.6,
+  "peak_gpu_temp_c": 58,
+  "start_gpu_temp_c": 43,
+  "end_gpu_temp_c": 56,
+  "comic_output_path": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\breakup_5panel_comic.png",
+  "panel_paths": [
+    "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\breakup_panel_1.png",
+    "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\breakup_panel_2.png",
+    "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\breakup_panel_3.png",
+    "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\breakup_panel_4.png",
+    "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\breakup_panel_5.png"
+  ],
+  "prompts": [
+    "single young adult with brown hair in comfortable olive green knit cardigan, sitting on edge of bed looking down at smartphone displaying open message, Locked intently on smartphone displaying open the screen, Quiet personal bedroom beside wooden desk and window, vibrant comic book art, crisp ink lines, flat cel shading",
+    "single young adult with brown hair in comfortable olive green knit cardigan, rereading messages on smartphone displaying open message thread, looking between screen and, Unfocused distant gaze lost in internal loops, hesitating, Quiet personal bedroom beside wooden desk and window, vibrant comic book art, crisp ink lines, flat cel shading",
+    "single young adult with brown hair in comfortable olive green knit cardigan, setting smartphone displaying open message thread face-down on table, opening handwritten notebook, Looking toward handwritten notebook and warm mug of, Quiet personal bedroom beside wooden desk and window, vibrant comic book art, crisp ink lines, flat cel shading",
+    "single young adult with brown hair in comfortable olive green knit cardigan, writing two honest truths in handwritten notebook and warm mug of tea:, Focused gaze on the written words in handwritten, Quiet personal bedroom beside wooden desk and window, vibrant comic book art, crisp ink lines, flat cel shading",
+    "single young adult with brown hair in comfortable olive green knit cardigan, standing upright by the window holding handwritten notebook and warm mug of, Looking forward toward open daylight and the day, Quiet personal bedroom beside wooden desk and window, vibrant comic book art, crisp ink lines, flat cel shading"
+  ]
+}

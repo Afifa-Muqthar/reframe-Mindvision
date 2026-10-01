@@ -86,11 +86,24 @@ class NarrativeGenerator:
             self._tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME_FALLBACK)
             self._model = AutoModelForSeq2SeqLM.from_pretrained(_MODEL_NAME_FALLBACK)
 
+    def generate_grounded(self, case_rep, selected_strategy) -> dict:
+        """
+        Stage 3 entry point: generates grounded narrative directly from
+        CaseRepresentation and SelectedStrategy with full traceability.
+        """
+        from app.narrative_gen.grounded_generator import GroundedNarrativeGenerator
+        grounded_gen = GroundedNarrativeGenerator()
+        return grounded_gen.generate(case_rep, selected_strategy)
+
     def generate(self, case_frame, technique: dict = None) -> dict:
         """
         Main entry point: returns a structured story dictionary directly
         usable by both the image generator and TTS.
         """
+        # Stage 3 adapter: if case_frame carries new representation, dispatch to grounded pipeline
+        if hasattr(case_frame, "case_representation") and hasattr(case_frame, "selected_strategy"):
+            return self.generate_grounded(case_frame.case_representation, case_frame.selected_strategy)
+
         strategy = getattr(case_frame, "strategy", {}) or {}
         pattern = getattr(case_frame, "pattern", "") or "Personal reflection and stress"
         controllable = getattr(case_frame, "controllable", "") or "Your boundaries and personal response"
@@ -185,13 +198,9 @@ class NarrativeGenerator:
 
         scenes_data = self._extract_or_fallback_scenes(text, case_frame, strategy, archetype)
 
-        voice_script = strategy.get("voice_script")
+        voice_script = strategy.get("voice_script") if (strategy and strategy.get("voice_script")) else None
         if not voice_script:
-            voice_script = (
-                f"{scenes_data[0]['narrative']} "
-                f"{scenes_data[1]['narrative']} "
-                f"{scenes_data[2]['narrative']}"
-            )
+            voice_script = " ".join(s.get("narrative", "") for s in scenes_data if s.get("narrative"))
 
         theme_note = getattr(case_frame, "recurring_theme_note", "")
         strategy_name = strategy.get("name") or (technique.get("name") if technique else "Evidence-Informed Reframing")
@@ -207,99 +216,54 @@ class NarrativeGenerator:
             "theme_note": theme_note,
             "strategy": strategy,
         }
+
+        # Enforce semantic relevance and purge cross-domain contamination
+        from app.psychology.semantic_validator import SemanticValidator
+        structured = SemanticValidator.sanitize_story(case_frame, structured)
+
         return structured
 
     def _extract_or_fallback_scenes(self, text: str, case_frame, strategy: dict, archetype: dict) -> list:
-        required_headers = [r"SCENE\s*1\s*[-—:]?\s*PROBLEM", r"SCENE\s*2\s*[-—:]?\s*REFRAMING?", r"SCENE\s*3\s*[-—:]?\s*RESOLUTION"]
-        has_all_headers = all(re.search(h, text, re.IGNORECASE) for h in required_headers)
-        lowered = text.lower()
-        has_harmful = any(p in lowered for p in _HARMFUL_PATTERNS)
-        is_echo = any(p in lowered for p in _ECHO_MARKERS)
+        from app.narrative_gen.scene_planner import ScenePlanner
 
-        model_narratives = {}
-        if has_all_headers and not has_harmful and not is_echo:
-            splits = re.split(r"(SCENE\s*[123]\s*[-—:]?\s*(?:PROBLEM|REFRAMING?|RESOLUTION)):\s*", text, flags=re.IGNORECASE)
-            for i in range(1, len(splits) - 1, 2):
-                hdr = splits[i].upper()
-                content = splits[i + 1].strip()
-                if "1" in hdr or "PROBLEM" in hdr:
-                    model_narratives["problem"] = content
-                elif "2" in hdr or "REFRAM" in hdr:
-                    model_narratives["reframing"] = content
-                elif "3" in hdr or "RESOLUTION" in hdr:
-                    model_narratives["resolution"] = content
+        planner = ScenePlanner()
+        planned_scenes = planner.plan_scenes(case_frame, strategy, archetype)
 
-        # Evidence-informed grounding
-        is_threat = getattr(case_frame, "is_external_threat", False)
-        trigger = getattr(case_frame, "trigger", "")
-        reframe = getattr(case_frame, "specific_reframe", "") or strategy.get("reframe", "")
-        action = getattr(case_frame, "concrete_action", "") or strategy.get("concrete_action", "")
+        # Ensure backward compatibility aliases for stage attribute
+        for s in planned_scenes:
+            if "stage" not in s:
+                s["stage"] = s.get("stage_category", "scene")
 
-        if is_threat:
-            fallback_p = (
-                f"You're dealing with an unpredictable and tense situation: '{case_frame.raw_text.strip()}'. "
-                f"When someone lashes out and later acts as though everything is normal, it naturally triggers confusion, tension, and self-doubt."
-            )
-            fallback_r = reframe or (
-                "Their acting normal afterward does not erase what happened earlier. "
-                "You do not have to rewrite the experience or take responsibility for their behavior. "
-                "Recognizing the pattern without blaming yourself allows you to decide what keeps you safest and most in control."
-            )
-            fallback_res = action or (
-                "Right now, you don't need to fix their behavior. "
-                "Give yourself physical or emotional distance, write down what happened while you remember it clearly, "
-                "and reach out to someone you trust for support."
-            )
-        else:
-            fallback_p = (
-                f"You're facing a tough moment: '{case_frame.raw_text.strip()}'. "
-                f"When this pressure builds, it can feel heavy and overwhelming."
-            )
-            fallback_r = reframe or (
-                f"Taking a step back can help you look at this thought differently: "
-                f"Separate what you can directly influence from the outcomes you cannot predict. "
-                f"Focus on the pieces within your personal control."
-            )
-            fallback_res = action or (
-                "Focus on taking one realistic constructive step today, "
-                "giving yourself credit for what is directly manageable right now."
-            )
+        # If model generated high-quality text, attempt to enrich narrative texts
+        if text:
+            required_headers = [r"SCENE\s*1\s*[-—:]?\s*PROBLEM", r"SCENE\s*2\s*[-—:]?\s*REFRAMING?", r"SCENE\s*3\s*[-—:]?\s*RESOLUTION"]
+            has_all_headers = all(re.search(h, text, re.IGNORECASE) for h in required_headers)
+            lowered = text.lower()
+            has_harmful = any(p in lowered for p in _HARMFUL_PATTERNS)
+            is_echo = any(p in lowered for p in _ECHO_MARKERS)
 
-        p_narrative = model_narratives.get("problem") or fallback_p
-        r_narrative = model_narratives.get("reframing") or fallback_r
-        res_narrative = model_narratives.get("resolution") or fallback_res
+            if has_all_headers and not has_harmful and not is_echo:
+                splits = re.split(r"(SCENE\s*[123]\s*[-—:]?\s*(?:PROBLEM|REFRAMING?|RESOLUTION)):\s*", text, flags=re.IGNORECASE)
+                model_narratives = {}
+                for i in range(1, len(splits) - 1, 2):
+                    hdr = splits[i].upper()
+                    content = splits[i + 1].strip()
+                    if "1" in hdr or "PROBLEM" in hdr:
+                        model_narratives["problem"] = content
+                    elif "2" in hdr or "REFRAM" in hdr:
+                        model_narratives["reframing"] = content
+                    elif "3" in hdr or "RESOLUTION" in hdr:
+                        model_narratives["resolution"] = content
 
-        arch_scenes = archetype.get("scenes", [{}, {}, {}])
+                if len(planned_scenes) == 3:
+                    if model_narratives.get("problem"):
+                        planned_scenes[0]["narrative"] = model_narratives["problem"]
+                    if model_narratives.get("reframing"):
+                        planned_scenes[1]["narrative"] = model_narratives["reframing"]
+                    if model_narratives.get("resolution"):
+                        planned_scenes[2]["narrative"] = model_narratives["resolution"]
 
-        return [
-            {
-                "stage": "problem",
-                "title": "1. PROBLEM",
-                "narrative": p_narrative,
-                "visual_description": arch_scenes[0].get("visual", "standing in a room with tense atmosphere, visibly burdened"),
-                "dialogue": arch_scenes[0].get("dialogue", "This situation feels overwhelming."),
-                "bubble_type": arch_scenes[0].get("bubble_type", "thought"),
-                "caption": arch_scenes[0].get("caption", "A difficult situation creates internal tension and uncertainty."),
-            },
-            {
-                "stage": "reframing",
-                "title": "2. REFRAMING",
-                "narrative": r_narrative,
-                "visual_description": arch_scenes[1].get("visual", "pausing thoughtfully, taking a calm breath, steady posture"),
-                "dialogue": arch_scenes[1].get("dialogue", "I can acknowledge what is happening without blaming myself."),
-                "bubble_type": arch_scenes[1].get("bubble_type", "thought"),
-                "caption": arch_scenes[1].get("caption", "A shift in perspective allows you to see what is truly within your control."),
-            },
-            {
-                "stage": "resolution",
-                "title": "3. RESOLUTION",
-                "narrative": res_narrative,
-                "visual_description": arch_scenes[2].get("visual", "in a safe supportive space, taking a concrete positive step"),
-                "dialogue": arch_scenes[2].get("dialogue", "I'll focus on what I can control and reach out to trusted support."),
-                "bubble_type": arch_scenes[2].get("bubble_type", "speech"),
-                "caption": arch_scenes[2].get("caption", "Focus on safety, support, and actionable steps forward."),
-            },
-        ]
+        return planned_scenes
 
     def unload(self):
         if self._model is not None:

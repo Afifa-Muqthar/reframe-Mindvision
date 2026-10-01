@@ -1,0 +1,185 @@
+[
+  {
+    "scenario_id": "task_overwhelm",
+    "scenario_name": "Task Overwhelm",
+    "input_text": "I have 20 things to do today and I feel completely overwhelmed and paralyzed, I don't know where to start.",
+    "situation_id": "overwhelm",
+    "pattern": "Task overwhelm, perceived lack of control, and behavioral freeze / paralysis.",
+    "strategy": "Micro-Action & Overwhelm Reduction",
+    "num_panels": 5,
+    "total_image_time_s": 4.927,
+    "per_panel_timings_s": [
+      1.943,
+      0.638,
+      0.635,
+      0.585,
+      0.609
+    ],
+    "peak_vram_mb": 3096.1,
+    "peak_gpu_temp_c": 65,
+    "comic_output": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\comic_task_overwhelm.png",
+    "panel_paths": [
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\task_overwhelm_panel_1.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\task_overwhelm_panel_2.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\task_overwhelm_panel_3.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\task_overwhelm_panel_4.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\task_overwhelm_panel_5.png"
+    ],
+    "prompts": [
+      "single young woman with tousled dark hair in dark hoodie, sitting at desk staring paralyzed at cluttered to-do checklist and stacked papers, Locked intently on cluttered to-do checklist and stacked, Home workstation surrounded by desk and bookshelves, Cool, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with tousled dark hair in dark hoodie, resting forehead in hand over cluttered to-do checklist and stacked papers, frozen, Darting between multiple items on cluttered to-do checklist, Home workstation surrounded by desk and bookshelves, Low-key, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with tousled dark hair in dark hoodie, pushing aside the cluttered papers to reveal desk timer set for five, Looking toward desk timer set for five minutes, Home workstation surrounded by desk and bookshelves, Soft, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with tousled dark hair in dark hoodie, writing down one single 5-minute task on desk timer set for five, Focused gaze on the written words in desk, Home workstation surrounded by desk and bookshelves, Warm, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with tousled dark hair in dark hoodie, setting desk timer set for five minutes and clean single-task card for, Looking forward toward open daylight and the day, Home workstation surrounded by desk and bookshelves, Crisp, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words"
+    ],
+    "scenes": [
+      {
+        "stage": "trigger",
+        "dialogue": "I have twenty things to do and I'm so overwhelmed I can't even begin.",
+        "caption": "Looking at everything all at once overwhelms the brain and creates paralysis."
+      },
+      {
+        "stage": "freeze",
+        "dialogue": "If I can't finish all twenty things today, what's the point of starting?",
+        "caption": "All-or-nothing thinking magnifies tasks into an insurmountable wall."
+      },
+      {
+        "stage": "examination",
+        "dialogue": "Wait. I don't have to conquer the whole mountain in this single hour.",
+        "caption": "Pausing interrupts the freeze: separate the total pile from the next five minutes."
+      },
+      {
+        "stage": "reframing",
+        "dialogue": "You do not have to conquer all twenty tasks simultaneously.",
+        "caption": "Break the wall down into a single brick. Momentum follows action, not perfection."
+      },
+      {
+        "stage": "resolution",
+        "dialogue": "Pick the simplest sub-task on your list\u2014something that takes under 5 minutes.",
+        "caption": "One small step forward breaks the freeze and builds genuine momentum."
+      }
+    ]
+  },
+  {
+    "scenario_id": "social_comparison",
+    "scenario_name": "Social Comparison",
+    "input_text": "Everyone my age seems to be succeeding and doing so much better than me, while I feel like a total failure and stuck.",
+    "situation_id": "social_comparison",
+    "pattern": "Social comparison, self-evaluation, and perceived personal inadequacy.",
+    "strategy": "Values Clarification & Comparison Defusion",
+    "num_panels": 5,
+    "total_image_time_s": 3.811,
+    "per_panel_timings_s": [
+      0.876,
+      0.62,
+      0.606,
+      0.575,
+      0.631
+    ],
+    "peak_vram_mb": 3096.1,
+    "peak_gpu_temp_c": 67,
+    "comic_output": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\comic_social_comparison.png",
+    "panel_paths": [
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\social_comparison_panel_1.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\social_comparison_panel_2.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\social_comparison_panel_3.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\social_comparison_panel_4.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\social_comparison_panel_5.png"
+    ],
+    "prompts": [
+      "single young woman with short hair in denim button-up shirt and dark, sitting in armchair scrolling through smartphone scrolling social media feed, slouching in, Locked intently on smartphone scrolling social media feed, Living room armchair beside a wooden side table, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with short hair in denim button-up shirt and dark, rereading curated highlights on smartphone scrolling social media feed, gripping device with, Unfocused distant gaze lost in internal loops, hesitating, Living room armchair beside a wooden side table, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with short hair in denim button-up shirt and dark, placing smartphone scrolling social media feed face-down on coffee table, looking up, Looking toward personal values journal with handwritten priorities, Living room armchair beside a wooden side table, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with short hair in denim button-up shirt and dark, writing personal intrinsic values and personal timeline in personal values journal with, Focused gaze on the written words in personal, Living room armchair beside a wooden side table, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with short hair in denim button-up shirt and dark, standing tall putting phone aside, turning attention happily toward personal creative work, Looking forward toward open daylight and the day, Living room armchair beside a wooden side table, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words"
+    ],
+    "scenes": [
+      {
+        "stage": "trigger",
+        "dialogue": "Everyone is doing so much better than me... I'm completely behind.",
+        "caption": "Curated achievements of others easily trigger deep personal inadequacy."
+      },
+      {
+        "stage": "spiral",
+        "dialogue": "I keep looping through how far ahead everyone else is compared to me.",
+        "caption": "Comparing your internal struggle to external highlights feeds the spiral."
+      },
+      {
+        "stage": "examination",
+        "dialogue": "Wait. Their public highlights don't define my personal journey.",
+        "caption": "Separate other people's curated milestones from your own authentic values."
+      },
+      {
+        "stage": "reframing",
+        "dialogue": "Other people's pace is not my measuring tape. My journey has its own timing.",
+        "caption": "Replace upward social comparison with alignment to your own intrinsic values and pace."
+      },
+      {
+        "stage": "resolution",
+        "dialogue": "I will set my phone aside and focus on what genuinely matters to my own growth.",
+        "caption": "Direct your attention inward toward your own growth, craft, and authentic progress."
+      }
+    ]
+  },
+  {
+    "scenario_id": "future_uncertainty",
+    "scenario_name": "Future Uncertainty",
+    "input_text": "I don't know what will happen with my future and career, and the constant uncertainty is making me anxious and terrified.",
+    "situation_id": "uncertainty",
+    "pattern": "Threat anticipation, intolerance of uncertainty, and perceived lack of control.",
+    "strategy": "Locus of Control & Grounding in Uncertainty",
+    "num_panels": 5,
+    "total_image_time_s": 3.777,
+    "per_panel_timings_s": [
+      0.863,
+      0.599,
+      0.604,
+      0.606,
+      0.641
+    ],
+    "peak_vram_mb": 3096.1,
+    "peak_gpu_temp_c": 67,
+    "comic_output": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\comic_future_uncertainty.png",
+    "panel_paths": [
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\future_uncertainty_panel_1.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\future_uncertainty_panel_2.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\future_uncertainty_panel_3.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\future_uncertainty_panel_4.png",
+      "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\future_uncertainty_panel_5.png"
+    ],
+    "prompts": [
+      "single young woman with dark hair in dark gray sweater, sitting quietly looking down at daily calendar and notebook on desk with, Locked intently on daily calendar and notebook on, Quiet living room desk beside open window, Cool, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with dark hair in dark gray sweater, pacing past desk or sitting gripped by spinning thoughts, touching hand to, Unfocused distant gaze lost in internal loops, hesitating, Quiet living room desk beside open window, Low-key, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with dark hair in dark gray sweater, closing daily calendar and notebook on desk, setting hands flat on desk, Looking toward pocket notebook with today's immediate routine, Quiet living room desk beside open window, Soft, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with dark hair in dark gray sweater, writing down two manageable routine tasks for today in pocket notebook with, Focused gaze on the written words in pocket, Quiet living room desk beside open window, Warm, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words",
+      "single young woman with dark hair in dark gray sweater, standing tall by open window holding pocket notebook with today's immediate routine, Looking forward toward open daylight and the day, Quiet living room desk beside open window, Crisp, vibrant comic book art, crisp ink lines, flat cel shading, no text, no words"
+    ],
+    "scenes": [
+      {
+        "stage": "trigger",
+        "dialogue": "I don't know what will happen with my future, and the uncertainty feels terrifying.",
+        "caption": "When the future feels ambiguous, the mind anticipates threat where there is only unknown."
+      },
+      {
+        "stage": "spiral",
+        "dialogue": "What if something terrible happens and I'm powerless to handle it?",
+        "caption": "Demanding certainty from an unpredictable future fuels escalating dread."
+      },
+      {
+        "stage": "examination",
+        "dialogue": "Wait. Not knowing what happens next doesn't mean catastrophe is guaranteed.",
+        "caption": "Pausing separates the feeling of uncertainty from the certainty of threat."
+      },
+      {
+        "stage": "reframing",
+        "dialogue": "I cannot predict the entire future today. I can handle the hour in front of me.",
+        "caption": "Reframing shifts focus from demanding future certainty to exercising present agency."
+      },
+      {
+        "stage": "resolution",
+        "dialogue": "I will anchor in today's routine tasks and take it one steady hour at a time.",
+        "caption": "Grounding in immediate present action relieves the burden of carrying tomorrow's unknowns."
+      }
+    ]
+  }
+]

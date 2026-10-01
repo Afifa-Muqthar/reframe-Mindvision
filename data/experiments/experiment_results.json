@@ -1,0 +1,138 @@
+{
+  "phase3_256": {
+    "name": "exp_phase3_256",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase3_256.png",
+    "steps": 2,
+    "size": "256x256",
+    "time_seconds": 12.77,
+    "peak_vram_mb": 5192.4
+  },
+  "phase3_512": {
+    "name": "exp_phase3_512",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase3_512.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 40.913,
+    "peak_vram_mb": 5912.7
+  },
+  "phase4_step1": {
+    "name": "exp_phase4_step1",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase4_step1.png",
+    "steps": 1,
+    "size": "512x512",
+    "time_seconds": 28.737,
+    "peak_vram_mb": 5912.7
+  },
+  "phase4_step2": {
+    "name": "exp_phase4_step2",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase4_step2.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 36.777,
+    "peak_vram_mb": 5912.7
+  },
+  "phase4_step4": {
+    "name": "exp_phase4_step4",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase4_step4.png",
+    "steps": 4,
+    "size": "512x512",
+    "time_seconds": 55.087,
+    "peak_vram_mb": 5912.7
+  },
+  "phase5_action_A_sitting_phone_fixed_seed": {
+    "name": "exp_phase5_action_A_sitting_phone_seed200",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase5_action_A_sitting_phone_seed200.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 33.859,
+    "peak_vram_mb": 5912.7
+  },
+  "phase5_action_B_standing_writing_fixed_seed": {
+    "name": "exp_phase5_action_B_standing_writing_seed200",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase5_action_B_standing_writing_seed200.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 37.95,
+    "peak_vram_mb": 5912.7
+  },
+  "phase5_action_C_walking_doorway_fixed_seed": {
+    "name": "exp_phase5_action_C_walking_doorway_seed200",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase5_action_C_walking_doorway_seed200.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 44.63,
+    "peak_vram_mb": 5912.7
+  },
+  "phase5_action_D_talking_person_fixed_seed": {
+    "name": "exp_phase5_action_D_talking_person_seed200",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase5_action_D_talking_person_seed200.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 139.018,
+    "peak_vram_mb": 5912.7
+  },
+  "phase5_action_E_outside_street_fixed_seed": {
+    "name": "exp_phase5_action_E_outside_street_seed200",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase5_action_E_outside_street_seed200.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 95.989,
+    "peak_vram_mb": 5912.7
+  },
+  "phase5_action_B_varied_seed": {
+    "name": "exp_phase5_action_B_seed201",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase5_action_B_seed201.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 25.491,
+    "peak_vram_mb": 5912.7
+  },
+  "phase7_concise": {
+    "name": "exp_phase7_concise",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase7_concise.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 29.369,
+    "peak_vram_mb": 5912.7
+  },
+  "phase7_current": {
+    "name": "exp_phase7_current",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase7_current.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 29.418,
+    "peak_vram_mb": 5912.7
+  },
+  "phase7_long": {
+    "name": "exp_phase7_long",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase7_long.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 29.493,
+    "peak_vram_mb": 5912.7
+  },
+  "phase8_no_neg": {
+    "name": "exp_phase8_no_neg",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase8_no_neg.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 24.832,
+    "peak_vram_mb": 5912.7
+  },
+  "phase8_with_neg_scale0": {
+    "name": "exp_phase8_with_neg_scale0",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase8_with_neg_scale0.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 28.571,
+    "peak_vram_mb": 5912.7
+  },
+  "phase8_with_neg_scale1_5": {
+    "name": "exp_phase8_with_neg_scale1_5",
+    "file": "E:\\reframe-MindVision\\reframe-Mindvision\\data\\experiments\\exp_phase8_with_neg_scale1_5.png",
+    "steps": 2,
+    "size": "512x512",
+    "time_seconds": 36.865,
+    "peak_vram_mb": 5913.5
+  }
+}

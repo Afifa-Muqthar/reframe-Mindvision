@@ -110,6 +110,15 @@ def process():
     strategy = select_strategy(psych_profile)
 
     # 6. Context Engine: assemble Case Frame with psychological reasoning
+    reasoning_dict = psych_profile.structured_reasoning()
+    reasoning_dict.update({
+        "what_may_be_happening": f"{psych_profile.trigger} → {psych_profile.pattern}",
+        "what_you_can_control": strategy.what_is_controllable,
+        "what_is_not_controllable": strategy.what_is_not_controllable,
+        "reframe": strategy.reframe,
+        "next_step": strategy.concrete_action,
+    })
+
     case_frame = CaseFrame(
         raw_text=text,
         distortions=distortions,
@@ -124,13 +133,7 @@ def process():
         strategy=strategy.to_dict(),
         specific_reframe=strategy.reframe,
         concrete_action=strategy.concrete_action,
-        reasoning={
-            "what_may_be_happening": f"{psych_profile.trigger} → {psych_profile.pattern}",
-            "what_you_can_control": strategy.what_is_controllable,
-            "what_is_not_controllable": strategy.what_is_not_controllable,
-            "reframe": strategy.reframe,
-            "next_step": strategy.concrete_action,
-        },
+        reasoning=reasoning_dict,
     )
     case_frame.build_summary()
     case_frame.recurring_theme_note = repository.build_recurring_theme_note()
@@ -141,12 +144,39 @@ def process():
         "description": strategy.mechanism,
     }
 
-    # 7. Structured 3-Stage Narrative generation (Problem -> Reframing -> Resolution).
-    generator = NarrativeGenerator()
+    # 7. Grounded Narrative & Observable Visual Staging (Stage 1-4)
+    story = None
+    use_grounded = True
     try:
-        story = generator.generate(case_frame, primary_technique)
-    finally:
-        generator.unload()
+        from app.psychology.case_representation import extract_case_representation
+        from app.psychology.case_strategy_selector import CaseStrategySelector
+        from app.narrative_gen.grounded_generator import GroundedNarrativeGenerator
+        from app.narrative_gen.scene_planner import ScenePlanner
+
+        case_rep = extract_case_representation(text)
+        strategy_selector = CaseStrategySelector()
+        selected_strategy = strategy_selector.select(case_rep)
+
+        grounded_gen = GroundedNarrativeGenerator()
+        raw_story = grounded_gen.generate(case_rep, selected_strategy)
+
+        # Stage 4: Enrich scenes with grounded physical visual staging
+        planner = ScenePlanner()
+        enriched_scenes = planner.plan_grounded_scenes(raw_story, case_rep, selected_strategy)
+        raw_story["scenes"] = enriched_scenes
+        story = raw_story
+    except Exception as exc:
+        import traceback
+        sys.stderr.write(f"[PIPELINE FALLBACK] Grounded pipeline failed, using legacy fallback: {exc}\n")
+        traceback.print_exc(file=sys.stderr)
+        use_grounded = False
+
+    if not use_grounded or story is None:
+        generator = NarrativeGenerator()
+        try:
+            story = generator.generate(case_frame, primary_technique)
+        finally:
+            generator.unload()
 
     formatted_narrative = format_narrative_text(story)
 
@@ -162,6 +192,7 @@ def process():
     scene_prompts = build_scene_prompts(story)
     output_image_path = os.path.join(MEDIA_DIR, f"session_{session_id}.png")
 
+    comic_title = f"REFRAME COMIC: {story.get('title', story.get('context', 'MENTAL REFRAMING')).upper()}"
     job_config = {
         "session_id": session_id,
         "prompts": scene_prompts,
@@ -169,7 +200,7 @@ def process():
         "output_path": output_image_path,
         "seed": session_id,
         "num_inference_steps": 2,
-        "title": f"REFRAME COMIC: {story.get('context', 'MENTAL REFRAMING').upper()}",
+        "title": comic_title,
     }
     config_path = os.path.join(MEDIA_DIR, f"job_{session_id}.json")
     with open(config_path, "w", encoding="utf-8") as f:

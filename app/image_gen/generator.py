@@ -25,29 +25,23 @@ import torch
 from diffusers import AutoPipelineForText2Image
 
 _MODEL_NAME = "stabilityai/sd-turbo"
-IMAGE_SIZE = 256
+IMAGE_SIZE = 512
 
 
 class ImageGenerator:
     def __init__(self):
+        self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         self._pipe = AutoPipelineForText2Image.from_pretrained(
-            _MODEL_NAME, torch_dtype=torch.float32
+            _MODEL_NAME, torch_dtype=dtype
         )
-        self._pipe.to("cpu")
-        # Cuts peak memory during the UNet and VAE-decode steps by
-        # processing attention/VAE tiles sequentially instead of all at
-        # once -- the difference between segfaulting and completing on a
-        # low-RAM machine.
+        self._pipe.to(self._device)
         self._pipe.enable_attention_slicing()
         self._pipe.enable_vae_slicing()
 
-    def generate(self, prompt: str, output_path: str, num_inference_steps: int = 1,
+    def generate(self, prompt: str, output_path: str, num_inference_steps: int = 2,
                  size: int = IMAGE_SIZE, seed: int = None) -> str:
-        # A fixed seed across the three storyboard panels (see
-        # build_panel_prompts) keeps their color palette and style visually
-        # cohesive even though SD-Turbo has no built-in way to keep the same
-        # illustrated figure identical across separate generations.
-        generator = torch.Generator(device="cpu").manual_seed(seed) if seed is not None else None
+        generator = torch.Generator(device=self._device).manual_seed(seed) if seed is not None else None
         image = self._pipe(
             prompt=prompt,
             num_inference_steps=num_inference_steps,
@@ -62,6 +56,8 @@ class ImageGenerator:
     def unload(self):
         del self._pipe
         gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 from app.image_gen.prompt_builder import (
     COMIC_VISUAL_STYLE,
     NEGATIVE_PROMPT,
@@ -91,11 +87,11 @@ def build_panel_prompts(core_emotion: str, technique_name: str, story: dict = No
         return build_scene_prompts(story)
 
     emotion = core_emotion or "worried"
-    character_anchor = "a young adult with short dark hair, wearing a dark hoodie and jeans, relatable student"
+    character_anchor = "young adult with short dark hair in dark gray sweater"
     return [
-        f"{character_anchor}, sitting at a study desk overwhelmed by notes, hands on head, feeling {emotion}, {COMIC_VISUAL_STYLE}",
-        f"{character_anchor}, sitting at desk pausing and taking a calm breath, looking at an open notebook, {COMIC_VISUAL_STYLE}",
-        f"{character_anchor}, sitting upright with focused determination, writing a realistic plan, bright morning light, {COMIC_VISUAL_STYLE}",
+        f"{character_anchor}, sitting at study desk with head resting on hands, looking down at open notes, quiet room, soft shadow-toned light, {COMIC_VISUAL_STYLE}",
+        f"{character_anchor}, sitting at desk pausing and taking a slow breath, gaze focused on open notebook, study room, soft warm light, {COMIC_VISUAL_STYLE}",
+        f"{character_anchor}, sitting upright holding pen resting on paper, looking forward with steady gaze, bright room by window, clear morning daylight, {COMIC_VISUAL_STYLE}",
     ]
 
 
