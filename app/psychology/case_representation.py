@@ -168,6 +168,14 @@ class CaseRepresentation:
     traceability_map: Dict[str, List[str]] = field(default_factory=dict)
     is_partial: bool = False
     descriptive_summary: str = ""
+    # Grounded Person-Centred Formulation fields (NICE NG136, CBT, ACT)
+    stated_behaviors: List[str] = field(default_factory=list)
+    context: str = ""
+    needs_or_concerns: List[str] = field(default_factory=list)
+    tentative_interpretations: List[str] = field(default_factory=list)
+    user_goal: Optional[str] = None
+    confidence_or_uncertainty: float = 0.5
+    ambiguity_level: str = "sufficient"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -183,18 +191,23 @@ _ACTOR_KEYWORDS = {
     "supervisor": "actor", "boss": "actor", "colleague": "actor", "colleagues": "actor",
     "coworker": "actor", "peers": "actor", "peer": "actor", "partner": "actor",
     "boyfriend": "actor", "girlfriend": "actor", "team": "actor", "manager": "actor",
+    "person": "actor", "someone": "actor", "ex": "actor",
 }
 
 _MILESTONE_KEYWORDS = {
     "graduation": "milestone", "career": "domain", "job": "domain", "placement": "milestone",
     "placed": "milestone", "promotion": "milestone", "promoted": "milestone",
     "dating": "relationship", "relationship": "relationship", "partner": "relationship",
+    "reciprocate": "relationship", "reciprocation": "relationship", "reconnect": "relationship",
     "report": "document", "environmental report": "document", "planet": "macro_context",
     "interview": "event", "exam": "event", "test": "event", "presentation": "event",
     "meeting": "event", "assignments": "obligation", "manuscript": "creative_work",
     "project": "obligation", "dinner party": "event", "flare-up": "condition",
     "autoimmune": "condition", "laundry": "activity", "fridge": "condition",
     "priority": "stated_concern", "priorities": "stated_concern",
+    "content": "activity", "video": "activity", "videos": "activity",
+    "work": "obligation", "workload": "obligation", "tasks": "obligation", "task": "obligation",
+    "responsibilities": "obligation", "deadlines": "obligation", "stuff": "obligation",
 }
 
 _EMOTION_LEXICON = {
@@ -212,6 +225,24 @@ _EMOTION_LEXICON = {
     "angry": ("negative", "anger"),
     "hopeless": ("negative", "despair"),
     "overwhelmed": ("negative", "overwhelm"),
+    "overwhelming": ("negative", "overwhelm"),
+    "overwhelm": ("negative", "overwhelm"),
+    "powerless": ("negative", "powerlessness"),
+    "powerlessness": ("negative", "powerlessness"),
+    "helpless": ("negative", "helplessness"),
+    "frustrated": ("negative", "frustration"),
+    "frustration": ("negative", "frustration"),
+    "exhausted": ("negative", "exhaustion"),
+    "drained": ("negative", "exhaustion"),
+    "depleted": ("negative", "exhaustion"),
+    "lonely": ("negative", "loneliness"),
+    "isolated": ("negative", "isolation"),
+    "ashamed": ("negative", "shame"),
+    "shame": ("negative", "shame"),
+    "hurt": ("negative", "hurt"),
+    "lost": ("negative", "uncertainty"),
+    "uncertain": ("negative", "uncertainty"),
+    "pressured": ("negative", "pressure"),
     "disconnected": ("negative", "alienation"),
     "crying": ("negative", "acute_sadness"),
     "numb": ("negative", "blunting"),
@@ -219,6 +250,18 @@ _EMOTION_LEXICON = {
     "stressed": ("negative", "stress"),
     "confused": ("negative", "confusion"),
     "sad": ("negative", "sadness"),
+    "miss": ("negative", "longing"),
+    "missing": ("negative", "longing"),
+    "longing": ("negative", "longing"),
+    "yearning": ("negative", "longing"),
+    "heartbroken": ("negative", "heartbreak"),
+    "heartbreak": ("negative", "heartbreak"),
+    "grief": ("negative", "grief"),
+    "mourning": ("negative", "grief"),
+    "regret": ("negative", "regret"),
+    "regretting": ("negative", "regret"),
+    "loved": ("positive", "care/affection"),
+    "love": ("positive", "care/affection"),
 }
 
 
@@ -274,6 +317,16 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
         (r"\b(paralyzed|unable\s+to\s+move)\b", "behavioral_state", "behavioral immobility"),
         (r"\bpriorities\s+(are\s+)?shifting(\s+every\s+now\s+and\s+then)?\b", "stated_concern", "shifting priorities"),
         (r"\bconfused\s+about\s+what\s+to\s+do\b", "stated_concern", "confusion about direction"),
+        (r"\bwatching\s+(too\s+much\s+)?(content|videos|tv|shows|youtube|tiktok)\b", "behavioral_state", "excessive content consumption"),
+        (r"\bto\s+numb\s+myself\b", "behavioral_state", "numbing coping behavior"),
+        (r"\b(how\s+much\s+stuff\s+i\s+have\s+to\s+take\s+care\s+of|stuff\s+i\s+have\s+to\s+take\s+care\s+of)\b", "obligation", "multiple responsibilities to manage"),
+        (r"\b(all\s+the\s+work\s+i\s+have\s+to\s+finish|work\s+i\s+have\s+to\s+finish)\b", "obligation", "workload to finish"),
+        (r"\bi\s+don'?t\s+know\s+what\s+to\s+do\s+anymore\b", "stated_concern", "at a loss for direction"),
+        (r"\b(miss(ing)?\s+(a\s+)?(person|someone|him|her|them|ex|my\s+ex))\b", "relational_state", "missing someone from past relationship"),
+        (r"\b((he|she|they)\s+)?loved\s+me(\s+deeply)?\b", "relational_state", "other person loved the user deeply"),
+        (r"\b(couldn'?t|unable\s+to|can'?t)\s+reciprocate\b", "relational_state", "inability to reciprocate romantic feelings"),
+        (r"\b(want(ing)?\s+to\s+(reconnect|reach\s+out|talk\s+to\s+(him|her|them)|get\s+back(\s+together)?))\b", "stated_intent", "desire to reconnect"),
+        (r"\b(don'?t\s+want\s+to|not\s+wanting\s+to)\s+(reconnect|resume|get\s+back(\s+together)?|reach\s+out)\b", "stated_boundary", "boundary against resuming relationship"),
     ]
     for pattern, cat, label in event_patterns:
         m = re.search(pattern, lowered)
@@ -340,6 +393,27 @@ def _extract_stated_emotions(doc, raw_text: str) -> List[StatedEmotion]:
     return deduped
 
 
+def _extract_stated_behaviors(doc, raw_text: str) -> List[str]:
+    """Extracts explicit actions, behavioral states, and coping habits."""
+    behaviors = []
+    lowered = raw_text.lower()
+    patterns = [
+        (r"\bwatching\s+(too\s+much\s+)?(content|videos|tv|shows|youtube|tiktok|reels|movies)\b", "excessive content consumption"),
+        (r"\b(to\s+numb\s+myself|numb(ing)?\s+myself)\b", "numbing coping behavior"),
+        (r"\b(sitting\s+on\s+the\s+floor|staring\s+at\s+(my\s+)?phone|unable\s+to\s+move)\b", "behavioral immobility / task freeze"),
+        (r"\b(can\s+barely\s+get\s+out\s+of\s+bed|staying\s+in\s+bed)\b", "physical immobility in bed"),
+        (r"\b(snapped\s+at\s+(her|him|them|my\s+mother|my\s+mom|parents))\b", "snapped at family member under strain"),
+        (r"\b(crying(\s+all\s+morning)?)\b", "crying"),
+        (r"\b(taking\s+care\s+of\s+my\s+aging\s+mother|caregiving)\b", "caregiving for aging mother"),
+        (r"\b(working\s+full\s+time)\b", "working full time"),
+        (r"\b(reading\s+(the\s+)?environmental\s+report)\b", "reading distressing report"),
+    ]
+    for pat, desc in patterns:
+        if re.search(pat, lowered) and desc not in behaviors:
+            behaviors.append(desc)
+    return behaviors
+
+
 def _extract_stated_thoughts(doc, raw_text: str) -> List[StatedThoughtOrClaim]:
     thoughts = []
     lowered = raw_text.lower()
@@ -362,6 +436,16 @@ def _extract_stated_thoughts(doc, raw_text: str) -> List[StatedThoughtOrClaim]:
         r"\bunable\s+to\s+move\b",
         r"\b(i'?m\s+)?(really\s+)?confused\s+about\s+what\s+to\s+do\b",
         r"\b(my\s+)?priorities\s+are\s+shifting(\s+every\s+now\s+and\s+then)?\b",
+        r"\bhow\s+much\s+stuff\s+i\s+have\s+to\s+take\s+care\s+of\b",
+        r"\ball\s+the\s+work\s+i\s+have\s+to\s+finish\b",
+        r"\bi\s+don'?t\s+know\s+what\s+to\s+do\s+anymore\b",
+        r"\bto\s+numb\s+myself\b",
+        r"\b(i\s+)?couldn'?t\s+reciprocate\b",
+        r"\b(he|she|they)\s+loved\s+me(\s+deeply)?\b",
+        r"\bi\s+miss\s+(a\s+)?(person|someone|him|her)\b",
+        r"\b(i\s+)?(really\s+)?want\s+to\s+(reconnect|reach\s+out)\b",
+        r"\b(i\s+)?(definitely\s+)?don'?t\s+want\s+to\s+(resume|get\s+back|reconnect)\b",
+        r"\bi\s+don'?t\s+know\s+what\s+i\s+feel\b",
     ]
 
     for pat in thought_patterns:
@@ -498,6 +582,68 @@ def _infer_appraisals(
         ))
         concerns.append("shifting_priorities_uncertainty")
 
+    # 9. Emotional Overwhelm & Content Consumption / Escape (Case A)
+    if re.search(r"\b(content|videos|tv|shows|youtube|scrolling|binging)\b.*\b(numb|distract|overwhelm)\b", lowered) or \
+       (re.search(r"\bnumb\s+myself\b", lowered) and re.search(r"\b(overwhelm|stuff|tasks|work|responsibilities)\b", lowered)) or \
+       (re.search(r"\bwatching\s+(too\s+much\s+)?content\b", lowered) and "numb" in lowered):
+        evidence = ["watching too much content", "numb myself from the overwhelming feeling"]
+        appraisals.append(InferredAppraisal(
+            dimension="overwhelm_and_avoidance",
+            interpretation="Content consumption appears to function as an attempt to find temporary relief or numbness from an overwhelming volume of competing responsibilities.",
+            confidence=0.90,
+            evidence_spans=evidence,
+            reasoning="User describes turning to content consumption specifically to numb the feeling of having too much stuff to take care of.",
+        ))
+        concerns.append("overwhelm_and_coping_distraction")
+
+    # 10. Workload Overwhelm (Case D)
+    elif re.search(r"\b(overwhelmed|overwhelming)\b.*\b(work|tasks|stuff|finish|deadlines|assignments)\b", lowered) or \
+         re.search(r"\b(all\s+the\s+work\s+i\s+have\s+to\s+finish)\b", lowered):
+        evidence = ["overwhelmed by work that needs to be finished"]
+        appraisals.append(InferredAppraisal(
+            dimension="workload_overwhelm",
+            interpretation="User is experiencing acute emotional overwhelm in response to accumulating work obligations that need to be completed.",
+            confidence=0.86,
+            evidence_spans=evidence,
+            reasoning="User identifies a high volume of work and an emotional state of overwhelm.",
+        ))
+        concerns.append("workload_overwhelm")
+
+    # 11. Relational Longing & Unreciprocated Feelings
+    if (re.search(r"\bmiss\b", lowered) and re.search(r"\b(couldn'?t\s+reciprocate|unable\s+to\s+reciprocate|reciprocate)\b", lowered)) or \
+       (re.search(r"\bmiss\b", lowered) and re.search(r"\bloved\s+me\b", lowered) and "reciprocate" in lowered):
+        evidence = [f.source_span for f in facts if f.category == "relational_state" or "person" in f.text.lower() or "partner" in f.text.lower()]
+        if not evidence:
+            evidence = ["missing someone who loved the user deeply", "inability to reciprocate feelings"]
+        appraisals.append(InferredAppraisal(
+            dimension="unreciprocated_relational_longing",
+            interpretation="Experiencing longing or bittersweet reflection for someone from the past who cared deeply, while holding the reality that feelings could not be reciprocated.",
+            confidence=0.90,
+            evidence_spans=evidence,
+            reasoning="User identifies missing a person who loved them deeply alongside an inability to reciprocate.",
+        ))
+        concerns.append("unreciprocated_relational_longing")
+    elif re.search(r"\bmiss\b", lowered) and (re.search(r"\b(want\s+to\s+reconnect|really\s+want\s+to\s+(reach\s+out|reconnect)|reach\s+out\s+and\s+reconnect)\b", lowered) or "want to reconnect" in lowered):
+        evidence = ["missing someone and considering reconnecting"]
+        appraisals.append(InferredAppraisal(
+            dimension="relational_longing_reconnection",
+            interpretation="Experiencing longing for a past person with an active consideration or desire to reach out and reconnect.",
+            confidence=0.88,
+            evidence_spans=evidence,
+            reasoning="User expresses missing someone accompanied by a desire to reconnect.",
+        ))
+        concerns.append("relational_longing_reconnection")
+    elif re.search(r"\bmiss\b", lowered) and (re.search(r"\b(don'?t\s+want\s+to\s+(resume|reconnect|get\s+back)|not\s+wanting\s+to\s+resume|do\s+not\s+want\s+to\s+resume)\b", lowered)):
+        evidence = ["missing someone while maintaining boundary against resuming relationship"]
+        appraisals.append(InferredAppraisal(
+            dimension="relational_longing_with_boundary",
+            interpretation="Experiencing genuine longing or grief for a past person while holding a clear personal boundary not to resume the relationship.",
+            confidence=0.90,
+            evidence_spans=evidence,
+            reasoning="User acknowledges missing someone while explicitly choosing not to resume the relationship.",
+        ))
+        concerns.append("relational_longing_with_boundary")
+
     return appraisals, concerns
 
 
@@ -505,14 +651,25 @@ def _infer_uncertainty(raw_text: str, appraisals: List[InferredAppraisal]) -> Un
     lowered = raw_text.lower()
     dims = {a.dimension for a in appraisals}
 
+    # Relational longing & unreciprocated care / boundary
+    if "unreciprocated_relational_longing" in dims or "relational_longing_reconnection" in dims or "relational_longing_with_boundary" in dims:
+        return UncertaintyProfile(
+            has_uncertainty=True,
+            uncertainty_type="relational_longing_uncertainty",
+            is_inherently_unpredictable=True,
+            preservation_required=True,
+            evidence_spans=["miss a person", "couldn't reciprocate"] if "reciprocate" in lowered else ["missing someone"],
+        )
+
     # Relational ambivalence
-    if re.search(r"\b(don'?t\s+know\s+whether\s+to\s+try\s+harder\s+or\s+let\s+go|disconnected|dating|relationship)\b", lowered):
+    if re.search(r"\b(don'?t\s+know\s+whether\s+to\s+try\s+harder\s+or\s+let\s+go|try\s+harder\s+or\s+let\s+go)\b", lowered) or \
+       (re.search(r"\b(dating|relationship)\b", lowered) and "disconnected" in lowered):
         return UncertaintyProfile(
             has_uncertainty=True,
             uncertainty_type="relational_ambivalence",
             is_inherently_unpredictable=True,
             preservation_required=True,
-            evidence_spans=["I don't know whether to try harder or let go"],
+            evidence_spans=["I don't know whether to try harder or let go"] if "try harder" in lowered else ["emotionally disconnected"],
         )
 
     # Climate / Macro existential
@@ -581,6 +738,31 @@ def _infer_controllability(facts: List[StatedFact], appraisals: List[InferredApp
         controllable.append("Choosing one small, immediate focus for today and allowing longer-term priorities to clarify gradually")
         uncontrollable.append("Having all future priorities permanently fixed or resolved all at once")
 
+    if "overwhelm_and_avoidance" in dims:
+        controllable.append("Choosing one single responsibility to look at first, or giving yourself a structured, guilt-free pause before returning to tasks")
+        uncontrollable.append("The total accumulated volume of things you have to take care of all at once")
+
+    if "workload_overwhelm" in dims:
+        controllable.append("Selecting just one single task or item to start with, and taking intentional pacing pauses")
+        uncontrollable.append("The total volume of pending work all at once")
+
+    if "unreciprocated_relational_longing" in dims:
+        controllable.append("Honoring your authentic emotional capacity, and deciding how to hold space for these memories without self-blame")
+        uncontrollable.append("The past reality of their deep feelings and your inability to force feelings that weren't there")
+
+    if "relational_longing_reconnection" in dims:
+        controllable.append("Reflecting thoughtfully on your true intentions, and choosing whether and how to reach out with respect for both parties' boundaries")
+        uncontrollable.append("How the other person might respond, and whether their feelings or circumstances have changed over time")
+
+    if "relational_longing_with_boundary" in dims:
+        controllable.append("Honoring your decision not to resume the relationship, and giving yourself permission to mourn the loss without having to reverse your boundary")
+        uncontrollable.append("Experiencing spontaneous waves of sadness, nostalgia, or missing the connection")
+
+    # Grounded fallback for sparse or open uncertainty: avoid generic boundary jargon
+    if not controllable and not uncontrollable:
+        controllable.append("Taking a slow pause right now, catching your breath, and choosing whether you wish to explore this further or just rest")
+        uncontrollable.append("Needing to immediately figure out every feeling, next step, or answer right this second")
+
     return ControllabilityAnalysis(
         potentially_controllable=controllable,
         potentially_uncontrollable=uncontrollable,
@@ -617,6 +799,36 @@ def _infer_support_needs(
         possible_needs.append("permission_to_hold_flux")
         contraindications.append("do_not_assume_trauma_or_relationship_conflict")
         contraindications.append("do_not_force_premature_rigid_plan")
+
+    if "overwhelm_and_avoidance" in dims:
+        possible_needs.append("empathetic_validation")
+        possible_needs.append("gentle_single_task_prioritization")
+        contraindications.append("do_not_label_as_lazy_or_addicted")
+        contraindications.append("do_not_demand_completing_all_tasks_at_once")
+        contraindications.append("do_not_pathologize_coping_behavior")
+
+    if "workload_overwhelm" in dims:
+        possible_needs.append("task_structuring_and_pacing")
+        contraindications.append("do_not_overwhelm_with_multi_step_planning")
+        contraindications.append("do_not_frame_workload_as_personal_inadequacy")
+
+    if "unreciprocated_relational_longing" in dims:
+        possible_needs.append("empathetic_holding_space")
+        possible_needs.append("reflective_clarification")
+        contraindications.append("do_not_assume_reconciliation_intent")
+        contraindications.append("do_not_assume_unresolved_trauma_or_pathology")
+        contraindications.append("do_not_impose_guilt_or_self_blame_for_unreciprocated_feelings")
+        contraindications.append("do_not_diagnose_attachment_pattern")
+
+    if "relational_longing_reconnection" in dims:
+        possible_needs.append("thoughtful_intention_clarification")
+        contraindications.append("do_not_guarantee_positive_response_from_other_person")
+        contraindications.append("do_not_rush_into_impulsive_contact")
+
+    if "relational_longing_with_boundary" in dims:
+        possible_needs.append("validation_of_grief_alongside_boundary")
+        contraindications.append("do_not_treat_missing_them_as_a_reason_to_break_boundary")
+        contraindications.append("do_not_invalidate_past_feelings")
 
     if "social_comparison" in dims and "career_horizon_uncertainty" in dims:
         possible_needs.append("values_clarification_and_pacing_differentiation")
@@ -657,7 +869,27 @@ def _identify_unknowns(
         missing.append("Current medical guidance or accommodation options")
 
     if "systemic_injustice" in dims:
+        missing.append("Supervisor's actual intent vs. observable action")
+        missing.append("Colleague's role in the attribution")
         missing.append("Workplace reporting structures or written documentation of project authorship")
+
+    if "priority_reorientation" in dims:
+        missing.append("What the specific competing priorities are")
+        missing.append("What is causing the priorities to fluctuate")
+        missing.append("Whether the user is distressed by the change or simply seeking practical clarity")
+
+    if "overwhelm_and_avoidance" in dims:
+        missing.append("Which specific responsibilities or tasks are pressing most")
+        missing.append("How long the content consumption pattern has continued")
+        missing.append("What kind of immediate relief or practical support feels most accessible")
+
+    if "workload_overwhelm" in dims:
+        missing.append("Specific nature and deadlines of the pending work items")
+        missing.append("Whether tasks can be delegated, postponed, or segmented")
+
+    if "unreciprocated_relational_longing" in dims:
+        missing.append("Whether the user wishes to reach out, find peace with moving on, or simply process the grief of missing them")
+        missing.append("How much time has passed since the connection was active")
 
     if not facts:
         missing.append("Concrete situational trigger or context")
@@ -665,6 +897,117 @@ def _identify_unknowns(
     missing.append("User's preferred support modality (listening vs. planning vs. perspective)")
 
     return UnknownOrUnstatedInfo(missing_aspects=missing)
+
+
+def _extract_user_goal(raw_text: str, thoughts: List[StatedThoughtOrClaim]) -> Optional[str]:
+    lowered = raw_text.lower()
+    if re.search(r"\bto\s+numb\s+myself\b", lowered):
+        return "seeking relief or distraction from overwhelming feelings"
+    if re.search(r"\b(confused\s+about\s+what\s+to\s+do|don'?t\s+know\s+what\s+to\s+do)\b", lowered):
+        return "seeking clarity on immediate priorities and direction"
+    if re.search(r"\b(work\s+i\s+have\s+to\s+finish|to\s+finish)\b", lowered):
+        return "seeking to make progress on pending responsibilities"
+    if re.search(r"\b(try\s+harder\s+or\s+let\s+go)\b", lowered):
+        return "determining whether to reinvest in the relationship or let go"
+    if re.search(r"\b(can'?t\s+be\s+productive|haven'?t\s+done\s+enough)\b", lowered):
+        return "wishing to fulfill expectations and be productive"
+    if re.search(r"\b(powerless|furious)\b", lowered):
+        return "seeking validation and constructive boundaries after unfair treatment"
+    if re.search(r"\b(want(ing)?\s+to\s+(reconnect|reach\s+out|talk\s+to\s+(him|her|them)|get\s+back))\b", lowered):
+        return "considering reconnecting or reaching out"
+    if re.search(r"\b(don'?t\s+want\s+to|not\s+wanting\s+to)\s+(resume|reconnect|get\s+back|reach\s+out)\b", lowered):
+        return "maintaining personal boundaries against resuming the relationship"
+    if re.search(r"\bmiss\b", lowered) and re.search(r"\b(reciprocate|loved\s+me)\b", lowered):
+        return None  # The goal is unstated / unknown
+    return None
+
+
+def _extract_context(raw_text: str, facts: List[StatedFact], behaviors: List[str]) -> str:
+    parts = []
+    for f in facts:
+        if f.category in ("event", "obligation", "condition", "milestone", "stated_concern", "relational_state", "stated_intent", "stated_boundary"):
+            parts.append(f.text)
+    if behaviors:
+        parts.extend(behaviors)
+    if parts:
+        return "; ".join(parts[:3])
+    return "general personal reflection"
+
+
+def _extract_needs_or_concerns(
+    facts: List[StatedFact],
+    emotions: List[StatedEmotion],
+    appraisals: List[InferredAppraisal],
+    user_goal: Optional[str],
+) -> List[str]:
+    needs = []
+    dims = {a.dimension for a in appraisals}
+    if "overwhelm_and_avoidance" in dims:
+        needs.append("relief from acute task overwhelm without guilt")
+        needs.append("gentle single-task prioritization")
+    elif "workload_overwhelm" in dims:
+        needs.append("pacing and breaking down pending workload")
+    if "systemic_injustice" in dims:
+        needs.append("validation of unacknowledged labor")
+        needs.append("objective options for self-advocacy or documentation")
+    if "priority_reorientation" in dims:
+        needs.append("grounding in immediate priorities without premature rigidity")
+    if "bodily_limitation" in dims:
+        needs.append("guilt-free permission to rest and recover")
+    if "executive_freeze" in dims:
+        needs.append("breaking task freeze through a tiny 2-minute entry step")
+    if "unreciprocated_relational_longing" in dims:
+        needs.append("processing complex feelings of missing someone without guilt or forced closure")
+    if "relational_longing_reconnection" in dims:
+        needs.append("clarifying intentions and boundaries before reaching out")
+    if "relational_longing_with_boundary" in dims:
+        needs.append("allowing space for grief while preserving personal boundaries")
+    if user_goal and user_goal not in needs:
+        needs.append(user_goal)
+    return needs or ["supportive reflection and open exploration"]
+
+
+def _infer_tentative_interpretations(
+    appraisals: List[InferredAppraisal],
+    facts: List[StatedFact],
+    emotions: List[StatedEmotion],
+    behaviors: List[str],
+) -> List[str]:
+    interpretations = []
+    for a in appraisals:
+        if a.interpretation not in interpretations:
+            interpretations.append(a.interpretation)
+    return interpretations or ["The user is reflecting on an uncertain or stressful experience without establishing detailed circumstances."]
+
+
+def _assess_ambiguity(
+    raw_text: str,
+    facts: List[StatedFact],
+    emotions: List[StatedEmotion],
+    thoughts: List[StatedThoughtOrClaim],
+    behaviors: List[str],
+    appraisals: List[InferredAppraisal],
+    uncertainty: UncertaintyProfile,
+) -> str:
+    """
+    Assesses input ambiguity based on what is actually present vs. missing.
+    - 'sufficient': Has meaningful situation/context, stated facts, specific pattern, or multiple dimensions.
+    - 'partial': Has an emotional state and a general source of distress (e.g. 'overwhelmed by all the work I have to finish').
+    - 'sparse_insufficient': Lacks situational detail, trigger, and concrete object (e.g. 'I don't know what to do anymore').
+    """
+    dims = {a.dimension for a in appraisals}
+    if any(d in dims for d in (
+        "overwhelm_and_avoidance", "priority_reorientation", "systemic_injustice",
+        "bodily_limitation", "executive_freeze", "workload_overwhelm",
+        "unreciprocated_relational_longing", "relational_longing_reconnection",
+        "relational_longing_with_boundary"
+    )):
+        return "sufficient"
+    if len(facts) >= 2 or len(behaviors) >= 1 or (len(facts) >= 1 and len(emotions) >= 1):
+        return "sufficient"
+    if len(emotions) >= 1 and (len(thoughts) >= 1 or len(raw_text.split()) > 6):
+        return "partial"
+    return "sparse_insufficient"
 
 
 # =============================================================================
@@ -686,6 +1029,8 @@ def extract_case_representation(
         return CaseRepresentation(
             raw_text="",
             is_partial=True,
+            ambiguity_level="sparse_insufficient",
+            confidence_or_uncertainty=0.0,
             descriptive_summary="Empty input received.",
             unknowns=UnknownOrUnstatedInfo(missing_aspects=["All context and information"]),
         )
@@ -693,9 +1038,10 @@ def extract_case_representation(
     nlp = get_spacy_nlp()
     doc = nlp(cleaned)
 
-    # 1. Stated facts, emotions, and thoughts
+    # 1. Stated facts, emotions, behaviors, and thoughts
     stated_facts = _extract_stated_facts(doc, cleaned)
     stated_emotions = _extract_stated_emotions(doc, cleaned)
+    stated_behaviors = _extract_stated_behaviors(doc, cleaned)
     stated_thoughts = _extract_stated_thoughts(doc, cleaned)
 
     # 2. Predicted emotions from model (kept strictly separate from stated emotions)
@@ -732,7 +1078,14 @@ def extract_case_representation(
     # 7. Explicit unknowns
     unknowns = _identify_unknowns(cleaned, stated_facts, stated_emotions, stated_thoughts, inferred_appraisals)
 
-    # 8. Build traceability map (Linking each inferred dimension to exact user substrings)
+    # 8. Stated experience & formulation helpers
+    user_goal = _extract_user_goal(cleaned, stated_thoughts)
+    context_desc = _extract_context(cleaned, stated_facts, stated_behaviors)
+    needs_or_concerns = _extract_needs_or_concerns(stated_facts, stated_emotions, inferred_appraisals, user_goal)
+    tentative_interpretations = _infer_tentative_interpretations(inferred_appraisals, stated_facts, stated_emotions, stated_behaviors)
+    ambiguity_level = _assess_ambiguity(cleaned, stated_facts, stated_emotions, stated_thoughts, stated_behaviors, inferred_appraisals, uncertainty)
+
+    # 9. Build traceability map (Linking each inferred dimension to exact user substrings)
     traceability_map = {}
     for a in inferred_appraisals:
         traceability_map[f"appraisal_{a.dimension}"] = a.evidence_spans
@@ -742,9 +1095,11 @@ def extract_case_representation(
         traceability_map[f"fact_{f.category}_{f.text}"] = [f.source_span]
     for e in stated_emotions:
         traceability_map[f"emotion_{e.emotion_word}"] = [e.source_span]
+    for b in stated_behaviors:
+        traceability_map[f"behavior_{b}"] = [b]
 
-    # 9. Descriptive summary (Grounding in stated facts, NEVER generic general_stress boilerplate)
-    fact_texts = [f.text for f in stated_facts if f.category in ("actor", "milestone", "condition")]
+    # 10. Descriptive summary (Grounding in stated facts, NEVER generic general_stress boilerplate)
+    fact_texts = [f.text for f in stated_facts if f.category in ("actor", "milestone", "condition", "obligation", "event")]
     concerns_summary = ", ".join(interacting_concerns) if interacting_concerns else "emerging personal challenge"
     emotions_summary = ", ".join(f"{e.emotion_word}" for e in stated_emotions) if stated_emotions else "unspecified emotional tension"
     
@@ -754,7 +1109,8 @@ def extract_case_representation(
         f"Active dimensions: [{concerns_summary}]."
     )
 
-    is_partial = len(stated_facts) == 0 and len(stated_emotions) <= 1 and len(stated_thoughts) == 0 and not uncertainty.has_uncertainty
+    is_partial = ambiguity_level in ("partial", "sparse_insufficient")
+    confidence_val = 0.88 if ambiguity_level == "sufficient" else (0.65 if ambiguity_level == "partial" else 0.35)
 
     return CaseRepresentation(
         raw_text=cleaned,
@@ -771,4 +1127,11 @@ def extract_case_representation(
         traceability_map=traceability_map,
         is_partial=is_partial,
         descriptive_summary=descriptive_summary,
+        stated_behaviors=stated_behaviors,
+        context=context_desc,
+        needs_or_concerns=needs_or_concerns,
+        tentative_interpretations=tentative_interpretations,
+        user_goal=user_goal,
+        confidence_or_uncertainty=confidence_val,
+        ambiguity_level=ambiguity_level,
     )

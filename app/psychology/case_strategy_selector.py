@@ -44,6 +44,7 @@ class SelectedStrategy:
     core_message: str = ""         # Grounding perspective or validating narrative
     suggested_step: Optional[str] = None # Realistic micro-action, or None if non-intervention
     clarification_questions: List[str] = field(default_factory=list) # Questions to ask if clarification needed
+    what_may_be_happening: Optional[str] = None # Grounded, empathetic formulation for the user
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -59,14 +60,16 @@ class CaseStrategySelector:
         Primary selection method.
         Evaluates explicit facts, concerns, appraisals, uncertainty, and unknowns.
         """
-        # 1. Check for Sparse, Vague, or Partial Input -> Clarification
-        if rep.is_partial and not rep.uncertainty.has_uncertainty:
-            return self._select_clarification(rep)
-        if len(rep.stated_facts) == 0 and len(rep.stated_emotions) <= 1 and len(rep.stated_thoughts) == 0 and not rep.uncertainty.has_uncertainty:
-            return self._select_clarification(rep)
-
-        # Extract active appraisal dimensions
         dims = {a.dimension for a in rep.inferred_appraisals}
+
+        # 1. Check for Sparse, Vague, or Partial Input -> Clarification
+        # Only when input is truly sparse (sparse_insufficient) with no active appraisals
+        if getattr(rep, "ambiguity_level", "sufficient") == "sparse_insufficient" and not dims and not rep.uncertainty.has_uncertainty:
+            return self._select_clarification(rep)
+        if rep.is_partial and not dims and not rep.uncertainty.has_uncertainty:
+            return self._select_clarification(rep)
+        if len(rep.stated_facts) == 0 and len(rep.stated_emotions) <= 1 and len(rep.stated_thoughts) == 0 and not rep.uncertainty.has_uncertainty and not dims:
+            return self._select_clarification(rep)
 
         # 2. Legitimate External Wrong / Systemic Injustice -> Validation (Zero Reframe)
         if "systemic_injustice" in dims:
@@ -76,51 +79,139 @@ class CaseStrategySelector:
         if "bodily_limitation" in dims:
             return self._select_illness_validation(rep)
 
-        # 4. Relational Ambivalence with Genuine Unknowns -> Holding Space (Non-Intervention)
+        # 4. Emotional Overwhelm & Distraction / Content Numbing (Case A)
+        if "overwhelm_and_avoidance" in dims:
+            return self._select_overwhelm_and_coping(rep)
+
+        # 5. Workload Overwhelm (Case D)
+        if "workload_overwhelm" in dims:
+            return self._select_workload_overwhelm(rep)
+
+        # 6. Relational Ambivalence with Genuine Unknowns -> Holding Space (Non-Intervention)
         if rep.uncertainty.has_uncertainty and rep.uncertainty.uncertainty_type == "relational_ambivalence":
             return self._select_relational_holding_space(rep)
 
-        # 5. Executive Freeze / Task Accumulation -> Practical Structuring & Micro-Entry
+        # 6b. Relational Longing & Unreciprocated Feelings
+        if "unreciprocated_relational_longing" in dims:
+            return self._select_unreciprocated_relational_longing(rep)
+
+        # 6c. Relational Longing with Desire to Reconnect
+        if "relational_longing_reconnection" in dims:
+            return self._select_relational_longing_reconnection(rep)
+
+        # 6d. Relational Longing with Clear Boundary
+        if "relational_longing_with_boundary" in dims:
+            return self._select_relational_longing_with_boundary(rep)
+
+        # 7. Executive Freeze / Task Accumulation -> Practical Structuring & Micro-Entry
         if "executive_freeze" in dims:
             return self._select_practical_structuring(rep)
 
-        # 6. Compound Career Horizon + Peer Comparison + Family Pressure (Regression Case C1)
+        # 8. Compound Career Horizon + Peer Comparison + Family Pressure (Regression Case C1)
         if "career_horizon_uncertainty" in dims and ("social_comparison" in dims or "evaluation_fear" in dims):
             return self._select_career_locus_of_agency(rep)
 
-        # 7. Caregiver Burnout & Relational Regret
+        # 9. Caregiver Burnout & Relational Regret
         if "evaluation_fear" in dims and any("mother" in f.text.lower() or "caregiv" in f.text.lower() for f in rep.stated_facts):
             return self._select_caregiver_validation(rep)
 
-        # 8. Macro Existential Dread (e.g. Climate, Global Future)
+        # 10. Macro Existential Dread (e.g. Climate, Global Future)
         if rep.uncertainty.has_uncertainty and rep.uncertainty.uncertainty_type == "macro_existential":
             return self._select_macro_grounding(rep)
 
-        # 9. Clear Cognitive Distortion / Imposter Syndrome (C5, C8)
+        # 11. Clear Cognitive Distortion / Imposter Syndrome (C5, C8)
         if "perceived_deficit" in dims:
             # If acute crying/exclusion is present, lead with validation
             if any(e.emotion_word.lower() in ("crying", "sobbing") for e in rep.stated_emotions):
                 return self._select_social_hurt_validation(rep)
             return self._select_perspective_reappraisal(rep)
 
-        # 10. Social Exclusion / Rejection Hurt
+        # 12. Social Exclusion / Rejection Hurt
         if "social_comparison" in dims and any(e.emotion_word.lower() in ("crying", "alone") for e in rep.stated_emotions):
             return self._select_social_hurt_validation(rep)
 
-        # 11. Pure Career or Future Horizon Uncertainty
+        # 13. Pure Career or Future Horizon Uncertainty
         if "career_horizon_uncertainty" in dims:
             return self._select_career_locus_of_agency(rep)
 
-        # 12. Shifting Priorities & Direction Uncertainty
+        # 14. Shifting Priorities & Direction Uncertainty
         if "priority_reorientation" in dims or (rep.uncertainty.has_uncertainty and rep.uncertainty.uncertainty_type == "priority_uncertainty"):
             return self._select_priority_uncertainty(rep)
 
-        # 13. Default: Open Empathetic Validation with Exploratory Clarification
+        # 15. Check sparse fallback if unhandled
+        if getattr(rep, "ambiguity_level", "sufficient") == "sparse_insufficient":
+            return self._select_clarification(rep)
+
+        # 16. Default: Open Empathetic Validation with Exploratory Clarification
         return self._select_general_validation(rep)
 
     # -------------------------------------------------------------------------
     # MODALITY BUILDERS
     # -------------------------------------------------------------------------
+
+    def _select_overwhelm_and_coping(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="overwhelm_coping_clarification",
+            name="Empathetic Overwhelm Validation & Gentle Prioritization",
+            clinical_framework="Compassion-Focused Therapy (Gilbert, 2009); Problem-Solving Therapy (Nezu & Nezu, 2013)",
+            rationale=(
+                "The user is carrying a heavy sense of overwhelm from having multiple responsibilities to manage. "
+                "Turning to content consumption appears to be an understandable attempt to seek temporary relief or numbness from that acute pressure, rather than an intentional choice to neglect things."
+            ),
+            what_may_be_happening=(
+                "You are carrying a heavy sense of overwhelm from having multiple responsibilities to manage. "
+                "Turning to content consumption appears to be an understandable attempt to seek temporary relief or numbness from that acute pressure, rather than an intentional choice to neglect things."
+            ),
+            confidence=0.88,
+            is_uncertain=True,
+            alternative_modalities=["practical_structuring", "locus_of_agency"],
+            contraindications=[
+                "do_not_label_as_lazy_or_addicted",
+                "do_not_demand_completing_all_tasks_at_once",
+                "do_not_pathologize_coping_behavior",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Reaching for distraction when the pressure feels unbearable is a common human attempt to find relief, not a character flaw or laziness. "
+                "Acknowledging that you are overwhelmed allows you to treat yourself with patience instead of self-blame."
+            ),
+            suggested_step=(
+                "Write down the single task that feels most pressing or easiest to begin with, "
+                "and set everything else aside for today so you only have one focus in front of you."
+            ),
+        )
+
+    def _select_workload_overwhelm(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="practical_structuring",
+            strategy_id="workload_overwhelm_structuring",
+            name="Workload Structuring & Single-Task Focus",
+            clinical_framework="Problem-Solving Therapy (Nezu & Nezu, 2013); Pacing & Task Structuring",
+            rationale=(
+                "The user is experiencing acute overwhelm from the volume of work that needs to be completed. "
+                "When multiple tasks press at once, feeling weighed down is an understandable reaction rather than personal failure."
+            ),
+            what_may_be_happening=(
+                "You are experiencing acute overwhelm from the volume of work that needs to be completed. "
+                "When multiple tasks press at once, feeling weighed down is an understandable reaction rather than personal failure."
+            ),
+            confidence=0.86,
+            is_uncertain=False,
+            alternative_modalities=["validation"],
+            contraindications=[
+                "do_not_overwhelm_with_multi_step_planning",
+                "do_not_frame_workload_as_personal_inadequacy",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Feeling overwhelmed by a large workload is an honest signal of capacity limits, not a reflection of your competence. "
+                "You do not have to tackle the entire mountain today; focusing on one single item helps restore breathing room."
+            ),
+            suggested_step=(
+                "Pick just one single task or item to start on first, and let the rest wait for a moment."
+            ),
+        )
 
     def _select_priority_uncertainty(self, rep: CaseRepresentation) -> SelectedStrategy:
         return SelectedStrategy(
@@ -132,6 +223,10 @@ class CaseStrategySelector:
                 "The user is navigating shifting priorities and uncertainty about what direction to take. "
                 "When priorities fluctuate, feeling confused is an understandable response rather than personal failure or pathology. "
                 "Focuses on clarifying what matters in the immediate present without forcing premature long-term rigidity."
+            ),
+            what_may_be_happening=(
+                "You are navigating shifting priorities and uncertainty about what direction to take. "
+                "When priorities fluctuate, feeling confused is an understandable response rather than personal failure or pathology."
             ),
             confidence=0.88,
             is_uncertain=True,
@@ -156,11 +251,14 @@ class CaseStrategySelector:
             modality="clarification_needed",
             strategy_id="clarification_sparse_input",
             name="Exploratory Clarification & Presence",
-            clinical_framework="Person-Centered Counseling (Rogers, 1957)",
+            clinical_framework="Person-Centered Counseling (Rogers, 1957); NICE NG136",
             rationale=(
-                "The user's input is brief, ambiguous, or lacks specific situational context. "
-                "Forcing an interpretative reframe or actionable advice would impose unsupported assumptions. "
-                "Holds space for uncertainty and invites gentle exploration."
+                "The input shares a general sense of uncertainty or feeling unsure of what is being experienced without providing situational details. "
+                "Acknowledging this uncertainty without guessing causes or imposing advice allows space for gentle exploration."
+            ),
+            what_may_be_happening=(
+                "You are experiencing a moment of uncertainty or difficulty pinpointing direction or feelings. "
+                "Because you haven't shared specific situational details, it is best not to assume or guess what is causing this experience."
             ),
             confidence=0.85,
             is_uncertain=True,
@@ -171,12 +269,111 @@ class CaseStrategySelector:
                 "do_not_impose_unsupported_reframe",
             ],
             reframe_needed=False,
-            core_message="Feeling unsure or unsettled is completely valid. You don't have to have everything sorted out to be heard.",
+            core_message="Feeling unsure or unable to name what you are feeling is an uncomfortable but deeply human experience. You do not have to have everything sorted out to be heard, and you don't need a complete plan to take things one moment at a time.",
             suggested_step=None,
             clarification_questions=[
-                "Has anything specific felt particularly demanding lately?",
+                "Take a quiet breath, and if you feel comfortable, share what has felt most noticeable or heavy lately so we can reflect on it together?",
                 "Would you prefer to explore what might be underneath this feeling, or just take a quiet pause to catch your breath?",
             ],
+        )
+
+    def _select_unreciprocated_relational_longing(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="relational_longing_unreciprocated",
+            name="Relational Longing & Emotional Complexity Validation",
+            clinical_framework="Emotion-Focused Therapy (Greenberg, 2002); Person-Centered Counseling (Rogers, 1957)",
+            rationale=(
+                "The user is experiencing longing for someone from the past who loved them deeply, while acknowledging an inability to reciprocate. "
+                "Acknowledging both the genuine affection received and the inability to return it normalizes the emotional complexity without imposing guilt, trauma assumptions, or premature reconciliation."
+            ),
+            what_may_be_happening=(
+                "You are experiencing longing for someone from your past who cared for you deeply, while holding the reality that you were unable to return those feelings. "
+                "It is completely natural to miss someone and feel the emotional weight of their care, even when you could not reciprocate."
+            ),
+            confidence=0.90,
+            is_uncertain=True,
+            alternative_modalities=["non_interventional_grounding"],
+            contraindications=[
+                "do_not_assume_reconciliation_intent",
+                "do_not_assume_unresolved_trauma_or_pathology",
+                "do_not_impose_guilt_or_self_blame_for_unreciprocated_feelings",
+                "do_not_diagnose_attachment_pattern",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Missing someone who loved you deeply does not mean you made a mistake or that you should have forced feelings you didn't have. "
+                "Genuine romantic feelings cannot be manufactured out of obligation, and it is entirely valid to mourn the loss of a meaningful connection while honoring your true capacity."
+            ),
+            suggested_step=None,
+            clarification_questions=[
+                "When you reflect on missing this person, what feels most present right now—are you wondering whether to reach out, seeking peace with having walked away, or simply making space for the memory?",
+                "Would you like to explore what you miss about this connection, or would it feel more supportive to focus on being gentle with yourself as you hold these memories?",
+            ],
+        )
+
+    def _select_relational_longing_reconnection(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="locus_of_agency",
+            strategy_id="relational_longing_reconnection",
+            name="Mindful Relational Reconnection & Agency",
+            clinical_framework="Acceptance & Commitment Therapy (Hayes, 1999); Interpersonal Effectiveness",
+            rationale=(
+                "The user expresses missing someone alongside an emerging wish to reach out and reconnect. "
+                "Grounds the decision in personal agency, honest intention, and mutual respect rather than impulsive action or assumptions about the outcome."
+            ),
+            what_may_be_happening=(
+                "You are experiencing deep longing for someone from your past and feeling a desire to reconnect. "
+                "Missing someone often clarifies how meaningful that bond was, while opening questions about whether reaching out is the right step today."
+            ),
+            confidence=0.88,
+            is_uncertain=True,
+            alternative_modalities=["validation"],
+            contraindications=[
+                "do_not_guarantee_positive_response_from_other_person",
+                "do_not_rush_into_impulsive_contact",
+                "do_not_disregard_past_reasons_for_distance",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Wanting to reconnect is a natural expression of caring, but reaching out is an invitation, not a guarantee of how things will unfold. "
+                "Focusing on your honest intention allows you to act with clarity while respecting both your needs and theirs."
+            ),
+            suggested_step=(
+                "Write down a private draft of what you would want to say and reflect on your true hopes for reconnecting, giving yourself a day or two before deciding whether to send it."
+            ),
+        )
+
+    def _select_relational_longing_with_boundary(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="relational_longing_boundary_affirmation",
+            name="Boundary Affirmation with Grief Validation",
+            clinical_framework="Emotion-Focused Therapy (Greenberg, 2002); Dialectical Behavior Therapy (Linehan, 1993)",
+            rationale=(
+                "The user experiences longing for a past person while maintaining an explicit boundary against resuming the relationship. "
+                "Validates that longing and boundaries can coexist without treating missing someone as evidence of a mistaken choice."
+            ),
+            what_may_be_happening=(
+                "You are feeling the genuine ache of missing someone from your past, while holding a clear and conscious boundary that you do not want to resume the relationship. "
+                "Missing someone and knowing you should not be together can coexist honestly."
+            ),
+            confidence=0.90,
+            is_uncertain=False,
+            alternative_modalities=["non_interventional_grounding"],
+            contraindications=[
+                "do_not_treat_missing_them_as_a_reason_to_break_boundary",
+                "do_not_invalidate_past_feelings",
+                "do_not_impose_reconciliation_narrative",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Missing someone does not mean you made the wrong decision or that you should reopen contact. "
+                "Longing is simply the heart's way of acknowledging a connection that mattered, and you can honor those memories without breaking your personal boundaries."
+            ),
+            suggested_step=(
+                "Allow yourself to feel the sadness or nostalgia of missing them today without treating it as an urge to reach out, trusting the reasons behind your boundary."
+            ),
         )
 
     def _select_injustice_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
@@ -188,6 +385,10 @@ class CaseStrategySelector:
             rationale=(
                 "The user describes an external violation of professional fairness where credit for a project was attributed to another colleague. "
                 "Reframing the supervisor's behavior could minimize the unfairness described and invalidate the user's legitimate emotional response."
+            ),
+            what_may_be_happening=(
+                "You describe an external violation of professional fairness where your supervisor gave credit for your three-month project to another colleague in a team meeting. "
+                "Your anger and feeling of powerlessness are completely legitimate responses to having your labor unacknowledged."
             ),
             confidence=0.85,
             is_uncertain=False,
@@ -217,6 +418,10 @@ class CaseStrategySelector:
             rationale=(
                 "The user's limitation is a legitimate biological illness flare-up, not a cognitive distortion. "
                 "Treating physical fatigue as a thinking trap or prescribing productivity steps would cause physiological harm."
+            ),
+            what_may_be_happening=(
+                "You are experiencing a physical illness flare-up that severely restricts your physical capacity and energy. "
+                "Feeling exhausted and needing to rest is a legitimate biological reality, not a personal failing or lack of will."
             ),
             confidence=0.94,
             is_uncertain=False,

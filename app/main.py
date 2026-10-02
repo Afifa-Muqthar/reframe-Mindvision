@@ -171,25 +171,34 @@ def process():
         controllable_str = (
             "; ".join(case_rep.controllability.potentially_controllable)
             if case_rep.controllability.potentially_controllable
-            else "Focus on personal boundaries, self-advocacy, and emotional safety."
+            else "Taking a slow pause right now to catch your breath and choosing how you wish to pace your day."
         )
         uncontrollable_str = (
             "; ".join(case_rep.controllability.potentially_uncontrollable)
             if case_rep.controllability.potentially_uncontrollable
-            else "Past events and external actions of others."
+            else "Uncertain future outcomes and the choices or actions of other people."
+        )
+        what_happening_str = (
+            selected_strategy.what_may_be_happening
+            or selected_strategy.rationale
+        )
+        next_step_str = (
+            selected_strategy.suggested_step
+            or (selected_strategy.clarification_questions[0] if selected_strategy.clarification_questions else None)
+            or "Take a quiet breath and allow yourself a restful moment before deciding what to do next."
         )
         # Ensure reasoning object contains only the 5 intended grounded fields
         case_frame.reasoning = {
-            "what_may_be_happening": selected_strategy.rationale,
+            "what_may_be_happening": what_happening_str,
             "what_you_can_control": controllable_str,
             "what_is_not_controllable": uncontrollable_str,
             "reframe": selected_strategy.core_message,
-            "next_step": selected_strategy.suggested_step,
+            "next_step": next_step_str,
         }
         case_frame.controllable = controllable_str
         case_frame.uncontrollable = uncontrollable_str
         case_frame.specific_reframe = selected_strategy.core_message
-        case_frame.concrete_action = selected_strategy.suggested_step
+        case_frame.concrete_action = next_step_str
         case_frame.summary = case_rep.descriptive_summary
         case_frame.pattern = f"Clinical Strategy: {selected_strategy.modality.replace('_', ' ').title()}"
         case_frame.is_external_threat = (

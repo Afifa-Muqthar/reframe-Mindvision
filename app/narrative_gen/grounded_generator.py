@@ -236,6 +236,14 @@ class GroundedNarrativeGenerator:
             d1 = "My core group of friends had a dinner party last night and didn't invite me."
             cap1 = "Being left out by friends delivers an acute and disorienting sting."
             narr1 = "Discovering you were excluded by your own social circle triggers deep attachment hurt and confusion."
+        elif "unreciprocated_relational_longing" in [a.dimension for a in rep.inferred_appraisals]:
+            d1 = "I miss someone who loved me deeply, even though I couldn't reciprocate those feelings."
+            cap1 = "Holding longing alongside unreciprocated affection is an emotionally complex and vulnerable experience."
+            narr1 = "You are reflecting on someone who cared for you deeply, while carrying the bittersweet reality that you were unable to return that love."
+        elif "relational_longing_with_boundary" in [a.dimension for a in rep.inferred_appraisals]:
+            d1 = "I miss someone from my past, but I know I don't want to resume the relationship."
+            cap1 = "Missing someone and holding a healthy boundary can honestly coexist."
+            narr1 = "You are honoring your decision to stay apart while acknowledging the natural grief of missing a past bond."
         else:
             d1 = f"I am dealing with a deeply challenging situation: {facts[0] if facts else 'an intense burden'}."
             cap1 = "Acknowledge the weight of the reality before rushing to solutions."
@@ -260,7 +268,10 @@ class GroundedNarrativeGenerator:
         # Scene 2: Holding the Emotion Without Judgment
         if emotions:
             primary_emo = emotions[0]
-            d2 = f"I'm feeling {primary_emo}... {thoughts[0] if thoughts else 'and it hurts deeply'}."
+            if primary_emo.lower() in ("miss", "missing"):
+                d2 = f"I miss this person... {thoughts[0] if thoughts else 'and holding this is complex.'}"
+            else:
+                d2 = f"I'm feeling {primary_emo}... {thoughts[0] if thoughts else 'and it hurts deeply'}."
         elif thoughts:
             d2 = f"I keep thinking: '{thoughts[0]}'."
         else:
@@ -284,7 +295,7 @@ class GroundedNarrativeGenerator:
         })
 
         # Scene 3: Constructive Boundary or Compassionate Rest
-        step_text = strategy.suggested_step or "Give yourself permission to pause and take care of your immediate physical comfort."
+        step_text = strategy.suggested_step or (strategy.clarification_questions[0] if strategy.clarification_questions else "Give yourself permission to pause and take care of your immediate physical comfort.")
         if is_injustice:
             title_3 = "3. CONSTRUCTIVE BOUNDARIES & DOCUMENTATION"
             d3 = "I will document my timeline and work files in my private notes before deciding on my next move."
@@ -292,6 +303,22 @@ class GroundedNarrativeGenerator:
             narr3 = (
                 f"{step_text} "
                 "Taking concrete, measured steps to record your work restores agency without rushing into premature confrontation."
+            )
+        elif "unreciprocated_relational_longing" in [a.dimension for a in rep.inferred_appraisals]:
+            title_3 = "3. GENTLE REFLECTION & SELF-COMPASSION"
+            d3 = "I will give myself permission to hold these feelings with kindness and patient honesty."
+            cap3 = "Self-compassion means honoring your authentic emotional capacity without guilt."
+            narr3 = (
+                f"{step_text} "
+                "Giving yourself space to acknowledge what you feel without rushing toward false certainty or self-criticism allows authentic peace to develop."
+            )
+        elif "relational_longing_with_boundary" in [a.dimension for a in rep.inferred_appraisals]:
+            title_3 = "3. BOUNDARY AFFIRMATION & COMPASSION"
+            d3 = "I will allow myself to feel the sadness of missing them today without needing to reach out."
+            cap3 = "Honoring boundaries allows grief to be felt without unraveling healthy decisions."
+            narr3 = (
+                f"{step_text} "
+                "Holding firm to your personal boundaries while validating your feelings is an act of deep self-respect."
             )
         else:
             title_3 = "3. COMPASSIONATE NEXT STEP"
