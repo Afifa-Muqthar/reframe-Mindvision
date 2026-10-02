@@ -153,10 +153,10 @@ class CaseStrategySelector:
             name="Workplace Injustice Validation & Boundary Options",
             clinical_framework="Emotion-Focused Therapy (Greenberg, 2002); Trauma-Informed Workplace Boundary Theory",
             rationale=(
-                "The user experienced an external violation of professional fairness (supervisor attributing user's project to colleague). "
-                "Cognitive reframing is strictly contraindicated because re-interpreting the supervisor's actions would minimize the wrong and gaslight the user."
+                "The user describes an external violation of professional fairness where credit for a project was attributed to another colleague. "
+                "Reframing the supervisor's behavior could minimize the unfairness described and invalidate the user's legitimate emotional response."
             ),
-            confidence=0.92,
+            confidence=0.85,
             is_uncertain=False,
             alternative_modalities=["locus_of_agency"],
             contraindications=[

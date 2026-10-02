@@ -245,10 +245,10 @@ class ScenePlanner:
                 stage, idx, total_scenes, modality
             )
 
-            # 4. Synthesize visual description for CLIP/SD-Turbo
-            prim_obj = anchors.primary_object
-            sec_obj = anchors.secondary_object
-            env = anchors.environment
+            # 4. Derive per-scene environment and objects
+            env, prim_obj, sec_obj, env_origin = self._derive_grounded_scene_environment(
+                stage, idx, total_scenes, modality, stated_facts, raw_text, anchors
+            )
 
             visual_desc = f"{action}, {gaze}, in {env.split(',')[0]}, {lighting}"
 
@@ -256,7 +256,7 @@ class ScenePlanner:
             detail_traceability = dict(sc.get("detail_traceability", {}))
             detail_traceability["visual_staging"] = {
                 "origin": act_origin,
-                "anchor_origin": anchor_origin,
+                "anchor_origin": env_origin,
                 "primary_object": prim_obj,
                 "environment": env,
             }
@@ -423,6 +423,44 @@ class ScenePlanner:
                 "creative_interpretation",
             )
 
+    def _derive_grounded_scene_environment(
+        self,
+        stage: str,
+        idx: int,
+        total_scenes: int,
+        modality: str,
+        facts: List[str],
+        raw_text: str,
+        anchors: SituationAnchors,
+    ) -> Tuple[str, str, Optional[str], str]:
+        text_corpus = (" ".join(facts) + " " + raw_text).lower()
+        is_workplace = any(k in text_corpus for k in ["supervisor", "colleague", "meeting", "project", "injustice", "credit"])
+
+        if is_workplace:
+            if idx == 1 or stage in ["reality", "trigger"]:
+                return (
+                    "workplace conference meeting room with table and presentation display",
+                    "team meeting agenda and presentation notes",
+                    "meeting notebook",
+                    "inferred_hypothesis",
+                )
+            elif idx == 2 or stage in ["validation", "pause"]:
+                return (
+                    "quiet private office room beside window",
+                    "personal desk with open notebook",
+                    "glass of water on desk",
+                    "creative_interpretation",
+                )
+            else:
+                return (
+                    "personal office desk with open laptop and organized file folders",
+                    "project folders and dated timeline log",
+                    "desk pen and notebook",
+                    "creative_interpretation",
+                )
+
+        return anchors.environment, anchors.primary_object, anchors.secondary_object, "user_stated" if facts else "creative_interpretation"
+
     def _derive_grounded_behavior(
         self,
         stage: str,
@@ -442,6 +480,7 @@ class ScenePlanner:
         is_career = any(k in text_corpus for k in ["career", "graduat", "placed", "firm", "job"])
         is_bed = any(k in text_corpus for k in ["bed", "fatigue", "flare-up", "autoimmune"])
         is_freeze = any(k in text_corpus for k in ["floor", "freeze", "laundry", "deadline"])
+        is_workplace = any(k in text_corpus for k in ["supervisor", "colleague", "meeting", "project", "injustice", "credit"])
 
         stg = stage.lower()
 
@@ -462,12 +501,17 @@ class ScenePlanner:
                 posture = "seated on floor with knees bent"
                 expression = "blank overwhelmed gaze"
                 gaze = "staring blankly at floor ahead"
+            elif is_workplace:
+                action = "sitting at conference room table with hands resting on meeting notes after project credit was misattributed"
+                posture = "seated upright with rigid tense posture"
+                expression = "stunned constrained expression"
+                gaze = "looking quietly toward meeting notes in disbelief"
             else:
                 action = "sitting quietly on wooden chair with hands resting on lap"
                 posture = "seated still with shoulders slightly curved"
                 expression = "quiet pensive expression"
                 gaze = "looking downward thoughtfully"
-            origin = "user_stated" if facts else "creative_interpretation"
+            origin = "creative_interpretation"
             return action, posture, expression, gaze, origin
 
         # Intermediate scenes: Progression depends on position and stage
@@ -515,12 +559,17 @@ class ScenePlanner:
                 posture = "transitioning from floor toward standing"
                 expression = "focused determined look"
                 gaze = "looking toward desk surface"
+            elif is_workplace:
+                action = "standing by window pausing with hands loosely clasped"
+                posture = "standing upright with dropped shoulders"
+                expression = "serious reflective expression acknowledging anger"
+                gaze = "looking outward through window acknowledging legitimate anger"
             else:
                 action = "leaning back in chair pausing and taking a deliberate slow breath"
                 posture = "seated upright with shoulders dropped"
                 expression = "calm reflective gaze"
                 gaze = "looking toward side window"
-            return action, posture, expression, gaze, "inferred_hypothesis"
+            return action, posture, expression, gaze, "creative_interpretation"
 
         # Final panel in 3-panel or general resolution
         if is_career:
@@ -538,6 +587,11 @@ class ScenePlanner:
             posture = "standing upright feet planted"
             expression = "steady resolute expression"
             gaze = "looking forward with steady gaze"
+        elif is_workplace:
+            action = "reviewing project records and writing dated timeline entries into notes"
+            posture = "seated upright focused attentively over documentation"
+            expression = "grounded determined expression"
+            gaze = "focused directly on project records and timeline documentation"
         else:
             action = "standing calmly beside desk looking forward with steady posture"
             posture = "standing upright relaxed"

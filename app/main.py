@@ -165,6 +165,41 @@ def process():
         enriched_scenes = planner.plan_grounded_scenes(raw_story, case_rep, selected_strategy)
         raw_story["scenes"] = enriched_scenes
         story = raw_story
+
+        # Align case_frame and technique with grounded psychological reasoning
+        controllable_str = (
+            "; ".join(case_rep.controllability.potentially_controllable)
+            if case_rep.controllability.potentially_controllable
+            else "Focus on personal boundaries, self-advocacy, and emotional safety."
+        )
+        uncontrollable_str = (
+            "; ".join(case_rep.controllability.potentially_uncontrollable)
+            if case_rep.controllability.potentially_uncontrollable
+            else "Past events and external actions of others."
+        )
+        # Ensure reasoning object contains only the 5 intended grounded fields
+        case_frame.reasoning = {
+            "what_may_be_happening": selected_strategy.rationale,
+            "what_you_can_control": controllable_str,
+            "what_is_not_controllable": uncontrollable_str,
+            "reframe": selected_strategy.core_message,
+            "next_step": selected_strategy.suggested_step,
+        }
+        case_frame.controllable = controllable_str
+        case_frame.uncontrollable = uncontrollable_str
+        case_frame.specific_reframe = selected_strategy.core_message
+        case_frame.concrete_action = selected_strategy.suggested_step
+        case_frame.summary = case_rep.descriptive_summary
+        case_frame.pattern = f"Clinical Strategy: {selected_strategy.modality.replace('_', ' ').title()}"
+        case_frame.is_external_threat = (
+            not selected_strategy.reframe_needed
+            or any(a.dimension in ("systemic_injustice", "relational_harm", "medical_adversity", "external_threat") for a in case_rep.inferred_appraisals)
+        )
+        primary_technique = {
+            "name": selected_strategy.modality.replace("_", " ").title(),
+            "citation": selected_strategy.clinical_framework,
+            "description": selected_strategy.rationale,
+        }
     except Exception as exc:
         import traceback
         sys.stderr.write(f"[PIPELINE FALLBACK] Grounded pipeline failed, using legacy fallback: {exc}\n")
@@ -184,7 +219,7 @@ def process():
     session_id = repository.save_session(case_frame, formatted_narrative)
 
     # 9. Connected TTS voice narration (tells the cohesive psychological story).
-    voice_script = strategy.voice_script or story.get("voice_script") or formatted_narrative
+    voice_script = (story.get("voice_script") if story else None) or strategy.voice_script or formatted_narrative
     audio_path = _run_tts(session_id, voice_script)
 
     # 10. Launch process-isolated comic image generator with structured config.
@@ -226,6 +261,7 @@ def process():
         "story": story,
         "audio_url": f"/media/{os.path.basename(audio_path)}" if audio_path else None,
         "image_status_url": f"/image_status/{session_id}",
+        "pipeline": "grounded_pipeline_v1" if use_grounded else "legacy_pipeline",
     }
     return jsonify(response)
 

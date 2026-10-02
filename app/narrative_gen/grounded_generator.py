@@ -239,6 +239,8 @@ class GroundedNarrativeGenerator:
             cap1 = "Acknowledge the weight of the reality before rushing to solutions."
             narr1 = f"You are carrying a significant burden right now: {', '.join(facts[:2]) if facts else 'an emotionally demanding situation'}."
 
+        is_injustice = "systemic_injustice" in [a.dimension for a in rep.inferred_appraisals] or "document" in (strategy.suggested_step or "").lower()
+
         scenes.append({
             "stage": "reality",
             "title": "1. THE SITUATION",
@@ -247,9 +249,9 @@ class GroundedNarrativeGenerator:
             "caption": cap1,
             "narrative": narr1,
             "detail_traceability": {
-                "dialogue": {"origin": "user_stated", "source": facts[0] if facts else "stated context"},
+                "dialogue": {"origin": "creative_interpretation", "source": f"grounded_in_facts: {facts[:2]}"},
                 "caption": {"origin": "inferred_hypothesis", "source": "validating trigger reality"},
-                "narrative": {"origin": "user_stated", "source": "stated facts preserved verbatim"},
+                "narrative": {"origin": "creative_interpretation", "source": f"grounded_in_facts: {facts[:2]}"},
             },
         })
 
@@ -273,28 +275,42 @@ class GroundedNarrativeGenerator:
                 "You do not need to force yourself to 'look on the bright side' or minimize what this experience took out of you."
             ),
             "detail_traceability": {
-                "dialogue": {"origin": "user_stated", "source": f"emotions: {emotions}, thoughts: {thoughts}"},
+                "dialogue": {"origin": "creative_interpretation", "source": f"grounded_in_emotions: {emotions}"},
                 "caption": {"origin": "inferred_hypothesis", "source": "EFT emotional validation principle"},
                 "narrative": {"origin": "inferred_hypothesis", "source": strategy.core_message},
             },
         })
 
-        # Scene 3: Compassionate Boundary or Rest
+        # Scene 3: Constructive Boundary or Compassionate Rest
         step_text = strategy.suggested_step or "Give yourself permission to pause and take care of your immediate physical comfort."
-        scenes.append({
-            "stage": "self_compassion",
-            "title": "3. COMPASSIONATE NEXT STEP",
-            "bubble_type": "speech",
-            "dialogue": "I will give myself permission to breathe, rest, and treat myself with kindness today.",
-            "caption": "True resilience begins by honoring your human limits and boundaries.",
-            "narrative": (
+        if is_injustice:
+            title_3 = "3. CONSTRUCTIVE BOUNDARIES & DOCUMENTATION"
+            d3 = "I will document my timeline and work files in my private notes before deciding on my next move."
+            cap3 = "Recording factual contributions and establishing clear boundaries provides steady footing for self-advocacy."
+            narr3 = (
+                f"{step_text} "
+                "Taking concrete, measured steps to record your work restores agency without rushing into premature confrontation."
+            )
+        else:
+            title_3 = "3. COMPASSIONATE NEXT STEP"
+            d3 = "I will give myself permission to breathe, rest, and treat myself with kindness today."
+            cap3 = "True resilience begins by honoring your human limits and boundaries."
+            narr3 = (
                 f"{step_text} "
                 "Remember that taking care of yourself is not a luxury or a setback—it is the foundation of genuine well-being."
-            ),
+            )
+
+        scenes.append({
+            "stage": "self_compassion",
+            "title": title_3,
+            "bubble_type": "speech",
+            "dialogue": d3,
+            "caption": cap3,
+            "narrative": narr3,
             "detail_traceability": {
-                "dialogue": {"origin": "creative_interpretation", "source": "speech bubble compassionate boundary"},
-                "caption": {"origin": "inferred_hypothesis", "source": "CFT self-compassion framework"},
-                "narrative": {"origin": "composite", "step": step_text, "framework": strategy.clinical_framework},
+                "dialogue": {"origin": "creative_interpretation", "source": "boundary and documentation speech bubble" if is_injustice else "speech bubble compassionate boundary"},
+                "caption": {"origin": "inferred_hypothesis", "source": "Trauma-Informed Workplace Boundary Theory" if is_injustice else "CFT self-compassion framework"},
+                "narrative": {"origin": "creative_interpretation", "source": f"grounded_in_step: {step_text}"},
             },
         })
 
