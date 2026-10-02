@@ -73,11 +73,23 @@ class CaseStrategySelector:
 
         # 2. Legitimate External Wrong / Systemic Injustice -> Validation (Zero Reframe)
         if "systemic_injustice" in dims:
+            if any(w in f.text.lower() for f in rep.stated_facts for w in ["partner", "grade", "mia", "zero code"]):
+                return self._select_collaboration_injustice(rep)
             return self._select_injustice_validation(rep)
 
         # 3. Physical Illness / Bodily Limitation -> Validation & Rest Permission (Zero Reframe)
         if "bodily_limitation" in dims:
+            if any(w in f.text.lower() for f in rep.stated_facts for w in ["acl", "crutch", "injury", "tryout", "soccer"]):
+                return self._select_sports_injury_validation(rep)
             return self._select_illness_validation(rep)
+
+        # 3b. Resource Strain & Escalating Living Obligations
+        if "resource_strain_uncertainty" in dims:
+            return self._select_resource_strain_validation(rep)
+
+        # 3c. Creative Block & Expressive Depletion
+        if "creative_block" in dims:
+            return self._select_creative_block_reappraisal(rep)
 
         # 4. Emotional Overwhelm & Distraction / Content Numbing (Case A)
         if "overwhelm_and_avoidance" in dims:
@@ -107,13 +119,18 @@ class CaseStrategySelector:
         if "executive_freeze" in dims:
             return self._select_practical_structuring(rep)
 
-        # 8. Compound Career Horizon + Peer Comparison + Family Pressure (Regression Case C1)
+        # 8a. Filial Boundary Pressure & Setting Limits
+        if ("family_boundary_pressure" in getattr(rep, "interacting_concerns", []) or "evaluation_fear" in dims) and any(w in rep.raw_text.lower() for w in ["expects", "say no", "said no", "awful daughter", "awful son", "boundary", "boundaries"]):
+            if any(w in rep.raw_text.lower() for w in ["mother", "father", "parents", "family"]):
+                return self._select_family_boundary_validation(rep)
+
+        # 8b. Caregiver Burnout & Relational Regret (C6)
+        if ("evaluation_fear" in dims or "caregiver" in rep.raw_text.lower()) and any(w in rep.raw_text.lower() for w in ["aging mother", "caregiv", "caring for", "snapped"]):
+            return self._select_caregiver_validation(rep)
+
+        # 8c. Compound Career Horizon + Peer Comparison + Family Pressure (Regression Case C1)
         if "career_horizon_uncertainty" in dims and ("social_comparison" in dims or "evaluation_fear" in dims):
             return self._select_career_locus_of_agency(rep)
-
-        # 9. Caregiver Burnout & Relational Regret
-        if "evaluation_fear" in dims and any("mother" in f.text.lower() or "caregiv" in f.text.lower() for f in rep.stated_facts):
-            return self._select_caregiver_validation(rep)
 
         # 10. Macro Existential Dread (e.g. Climate, Global Future)
         if rep.uncertainty.has_uncertainty and rep.uncertainty.uncertainty_type == "macro_existential":
@@ -247,32 +264,77 @@ class CaseStrategySelector:
         )
 
     def _select_clarification(self, rep: CaseRepresentation) -> SelectedStrategy:
+        raw_lower = rep.raw_text.lower()
+        emotions_words = [e.emotion_word for e in rep.stated_emotions]
+
+        if "numb" in raw_lower or any("numb" in w for w in emotions_words):
+            what_happening = (
+                "Things feel heavy, foggy, or disconnected right now. "
+                "Often, emotional numbness or a moment of uncertainty is your mind and nervous system's quiet way "
+                "of asking for a pause when things have felt like a lot to carry, even if you cannot put your finger on an exact reason."
+            )
+            reframe_msg = (
+                "You do not need to have a clear story or a dramatic reason to justify how you feel. "
+                "Emotional numbness is a completely legitimate human state that deserves gentle patience, "
+                "not pressure to explain yourself or force yourself to snap out of it."
+            )
+        elif "empty" in raw_lower or "hollow" in raw_lower:
+            what_happening = (
+                "You are experiencing a moment of deep emotional exhaustion or emptiness right now. "
+                "Feeling drained or hollow is often a quiet sign that your inner reserves have been carrying things in the background."
+            )
+            reframe_msg = (
+                "Feeling empty is not a personal failure, but an honest signal that you need restorative care and gentleness. "
+                "You do not have to force yourself to feel positive or productive when your mind simply needs rest."
+            )
+        elif emotions_words:
+            emotions_str = ", ".join(emotions_words)
+            what_happening = (
+                f"You are experiencing a moment of uncertainty and feeling {emotions_str} right now. "
+                "It is completely natural for feelings to feel hazy or difficult to pin down into neat words."
+            )
+            reframe_msg = (
+                f"Feeling {emotions_str} without knowing exactly why is completely valid. "
+                "Your feelings do not need a logical justification to be real, and giving yourself permission to simply feel what you feel is enough."
+            )
+        else:
+            what_happening = (
+                "You are experiencing a moment of uncertainty, fog, or difficulty putting things into words right now. "
+                "You do not have to have a neat explanation or a clear storyline ready for your experience to be completely real and valid."
+            )
+            reframe_msg = (
+                "Feeling unsure, disconnected, or unable to name what you are going through is a deeply human experience. "
+                "You do not owe anyone a neat explanation to deserve kindness, and you don't need a complete plan to take things one quiet moment at a time."
+            )
+
+        step_question = (
+            "No pressure to figure anything out right now. If you feel comfortable, what has felt most noticeable or heavy lately, or would it feel better to just take a quiet pause to rest?"
+        )
+
         return SelectedStrategy(
             modality="clarification_needed",
             strategy_id="clarification_sparse_input",
-            name="Exploratory Clarification & Presence",
-            clinical_framework="Person-Centered Counseling (Rogers, 1957); NICE NG136",
+            name="Empathetic Holding Space & Gentle Presence",
+            clinical_framework="Person-Centered Counseling (Rogers, 1957); Compassion-Focused Therapy (Gilbert, 2009)",
             rationale=(
-                "The input shares a general sense of uncertainty or feeling unsure of what is being experienced without providing situational details. "
-                "Acknowledging this uncertainty without guessing causes or imposing advice allows space for gentle exploration."
+                "The user is experiencing emotional fog, numbness, or uncertainty. "
+                "Validates their internal state directly without demanding situational justification or clinical explanations, "
+                "providing a warm, non-evaluative holding space."
             ),
-            what_may_be_happening=(
-                "You are experiencing a moment of uncertainty or difficulty pinpointing direction or feelings. "
-                "Because you haven't shared specific situational details, it is best not to assume or guess what is causing this experience."
-            ),
+            what_may_be_happening=what_happening,
             confidence=0.85,
             is_uncertain=True,
             alternative_modalities=["non_interventional_grounding"],
             contraindications=[
                 "do_not_assume_specific_trauma_or_depression",
                 "do_not_force_premature_action_steps",
-                "do_not_impose_unsupported_reframe",
+                "do_not_demand_situational_justification",
             ],
             reframe_needed=False,
-            core_message="Feeling unsure or unable to name what you are feeling is an uncomfortable but deeply human experience. You do not have to have everything sorted out to be heard, and you don't need a complete plan to take things one moment at a time.",
+            core_message=reframe_msg,
             suggested_step=None,
             clarification_questions=[
-                "Take a quiet breath, and if you feel comfortable, share what has felt most noticeable or heavy lately so we can reflect on it together?",
+                step_question,
                 "Would you prefer to explore what might be underneath this feeling, or just take a quiet pause to catch your breath?",
             ],
         )
@@ -410,17 +472,25 @@ class CaseStrategySelector:
         )
 
     def _select_illness_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
+        cond_matches = [f.text for f in rep.stated_facts if f.category == "condition"]
+        if not cond_matches:
+            for cand in ["chronic migraine", "migraine", "autoimmune flare-up", "flare-up", "illness", "chronic pain", "injury"]:
+                if cand in rep.raw_text.lower():
+                    cond_matches.append(cand)
+                    break
+        condition_name = cond_matches[0] if cond_matches else "a physical health condition"
+
         return SelectedStrategy(
             modality="validation",
             strategy_id="bodily_limitation_compassion",
             name="Empathetic Validation & Rest Permission",
             clinical_framework="Compassion-Focused Therapy (Gilbert, 2009); Pacing & Energy Conservation Theory",
             rationale=(
-                "The user's limitation is a legitimate biological illness flare-up, not a cognitive distortion. "
-                "Treating physical fatigue as a thinking trap or prescribing productivity steps would cause physiological harm."
+                f"The user's limitation is a legitimate biological condition ({condition_name}), not a cognitive distortion. "
+                "Treating physical fatigue or pain as a thinking trap or prescribing productivity steps would cause physiological harm."
             ),
             what_may_be_happening=(
-                "You are experiencing a physical illness flare-up that severely restricts your physical capacity and energy. "
+                f"You are experiencing physical symptoms related to {condition_name} that severely restrict your capacity and energy. "
                 "Feeling exhausted and needing to rest is a legitimate biological reality, not a personal failing or lack of will."
             ),
             confidence=0.94,
@@ -433,8 +503,8 @@ class CaseStrategySelector:
             ],
             reframe_needed=False,
             core_message=(
-                "An autoimmune flare-up is a physical reality that demands restorative pacing, not self-reproach. "
-                "Your body is expending significant energy to stabilize; resting is essential physiological care, not lost time."
+                f"Dealing with {condition_name} is a physical reality that demands restorative pacing, not self-reproach. "
+                "Your body is expending significant energy to stabilize and recover; resting is essential physiological care, not lost time."
             ),
             suggested_step=(
                 "Give yourself explicit, guilt-free permission to rest today and focus strictly on physical comfort, hydration, and gentle warmth."
@@ -500,31 +570,94 @@ class CaseStrategySelector:
         )
 
     def _select_career_locus_of_agency(self, rep: CaseRepresentation) -> SelectedStrategy:
-        return SelectedStrategy(
-            modality="locus_of_agency",
-            strategy_id="career_agency_values_differentiation",
-            name="Locus of Agency & Values Differentiation",
-            clinical_framework="Stress Inoculation (Meichenbaum, 1985); Acceptance & Commitment Therapy (Hayes, 1999)",
-            rationale=(
+        raw_lower = rep.raw_text.lower()
+        is_disruption = any(w in raw_lower for w in ["phased out", "disposable", "ai tools", "ai", "layoff", "laid off", "restructur", "pivot", "automation"])
+
+        if is_disruption:
+            what_happening = (
+                "You are facing sudden organizational or technological changes that threaten your current role and livelihood. "
+                "Navigating industry shifts after building deep professional expertise understandably brings up feelings of vulnerability, grief, and fear."
+            )
+            core_msg = (
+                "Facing a unit phaseout or major technological transition after decades of dedication is a profound disruption, not personal failure. "
+                "While organizational shifts and rapid automation are outside your control, the depth of your accumulated expertise, craftsmanship, and problem-solving remains yours. "
+                "You can honor the legitimate grief of this disruption while taking grounded agency over how you translate your durable experience into your next chapter."
+            )
+            step_msg = (
+                "Identify one manageable action focused strictly on your own path today (such as noting down three core strengths or consulting a trusted professional contact), rather than carrying the entire future at once."
+            )
+            rationale_text = (
+                "The user describes industry or workplace disruption (e.g. unit phaseout or automation). "
+                "Validates disruption shock while anchoring locus of control strictly in transferable experience and self-directed next steps."
+            )
+        else:
+            what_happening = (
+                "You are navigating a stressful career transition and comparing your pace to the milestones of others. "
+                "When peers appear to move ahead quickly, it is natural for self-doubt and pressure around future security to surge."
+            )
+            core_msg = (
+                "It is completely natural to feel both happy for your friends and anxious about your own path. "
+                "Other people's placement timelines do not define your ceiling or your worth. "
+                "You can deeply care about your family while honoring that building a career happens at an individual, sustainable pace."
+            )
+            step_msg = (
+                "Identify one manageable, controllable action for your own path today (such as polishing one section of your resume or setting aside structured rest), rather than carrying the entire future all at once."
+            )
+            rationale_text = (
                 "The user faces compound concerns: future career transition uncertainty, peer placement milestones, fear of letting family down, and perceived personal deficit. "
                 "Decouples personal worth from peer timelines, validates family love while clarifying that hiring pace is external, and directs agency strictly to manageable preparation."
-            ),
-            confidence=0.86,
+            )
+
+        return SelectedStrategy(
+            modality="locus_of_agency",
+            strategy_id="workplace_transition_locus_of_agency" if is_disruption else "career_agency_values_differentiation",
+            name="Locus of Agency & Career Transition" if is_disruption else "Locus of Agency & Values Differentiation",
+            clinical_framework="Stress Inoculation (Meichenbaum, 1985); Acceptance & Commitment Therapy (Hayes, 1999)",
+            rationale=rationale_text,
+            what_may_be_happening=what_happening,
+            confidence=0.88,
             is_uncertain=True,
             alternative_modalities=["validation"],
             contraindications=[
                 "do_not_dismiss_family_concern_as_irrational",
                 "do_not_force_premature_hiring_certainty",
                 "do_not_tell_user_their_worries_are_groundless",
+                "do_not_blame_user_for_technological_shifts",
             ],
             reframe_needed=False,  # Anchors in agency and pacing rather than cognitive disputation
+            core_message=core_msg,
+            suggested_step=step_msg,
+        )
+
+    def _select_family_boundary_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="family_boundary_guilt_compassion",
+            name="Family Boundary Guilt & Capacity Honoring",
+            clinical_framework="Relational Boundary Theory; Self-Compassion Therapy (Neff, 2003)",
+            rationale=(
+                "The user is experiencing intense guilt and self-blame after communicating a boundary or saying no to parental/family expectations. "
+                "Honoring finite human stamina and personal pacing does not diminish filial love or mean they are failing their family."
+            ),
+            what_may_be_happening=(
+                "You are navigating the painful tension between wanting to support your family and reaching the physical limits of your capacity. "
+                "Communicating a boundary or saying no when exhausted naturally stirs guilt, but it is an honest acknowledgment of your limits, not a lack of love."
+            ),
+            confidence=0.90,
+            is_uncertain=False,
+            alternative_modalities=["locus_of_agency"],
+            contraindications=[
+                "do_not_demand_self_sacrifice_over_health",
+                "do_not_fuel_guilt_or_blame_user_for_boundaries",
+                "do_not_invalidate_family_disappointment",
+            ],
+            reframe_needed=False,
             core_message=(
-                "It is completely natural to feel both happy for your friends and anxious about your own path. "
-                "Other people's placement timelines do not define your ceiling or your worth. "
-                "You can deeply care about your family while honoring that building a career happens at an individual, sustainable pace."
+                "Saying no when you are running on empty does not make you an awful daughter or son. "
+                "Loving your family and honoring your own physical and emotional limits can coexist; you cannot pour from an empty cup."
             ),
             suggested_step=(
-                "Identify one manageable, controllable action for your own path today (such as polishing one section of your resume or setting aside structured rest), rather than carrying the entire future all at once."
+                "Acknowledge the discomfort of their disappointment without turning it into self-blame, and prioritize getting the rest you genuinely need this weekend."
             ),
         )
 
@@ -535,9 +668,13 @@ class CaseStrategySelector:
             name="Caregiver Strain & Self-Compassion",
             clinical_framework="Self-Compassion Therapy (Neff, 2003); Caregiver Stress Framework",
             rationale=(
-                "The user is carrying full-time caregiving and professional responsibilities simultaneously. "
-                "Snapping at a parent reflects acute nervous system depletion, not a moral failure. "
+                "The user is carrying intensive caregiving and daily responsibilities simultaneously. "
+                "Moments of frustration or emotional depletion under severe exhaustion reflect nervous system limits, not a moral failure. "
                 "Validates human exhaustion and encourages self-forgiveness over productivity."
+            ),
+            what_may_be_happening=(
+                "You are carrying heavy ongoing caregiving and daily responsibilities that have depleted your energy reserves. "
+                "Moments of strain or emotional exhaustion reflect human limits, not a lack of love or character."
             ),
             confidence=0.90,
             is_uncertain=False,
@@ -549,7 +686,7 @@ class CaseStrategySelector:
             reframe_needed=False,
             core_message=(
                 "Deeply loving someone does not make you immune to human limits. "
-                "Snapping when your energy reserves are entirely depleted reflects sheer exhaustion, not that you are an awful person."
+                "Feeling overwhelmed or reactive when your energy reserves are entirely depleted reflects sheer exhaustion, not that you are an awful person."
             ),
             suggested_step=(
                 "Take ten quiet minutes strictly for yourself today with a warm drink or slow breath, and remember that caregivers need care too."
@@ -585,9 +722,16 @@ class CaseStrategySelector:
 
     def _select_perspective_reappraisal(self, rep: CaseRepresentation) -> SelectedStrategy:
         facts_text = " ".join([f.text.lower() for f in rep.stated_facts])
+        raw_lower = rep.raw_text.lower()
         is_creative = "manuscript" in facts_text or "writing" in facts_text or "art" in facts_text
+        is_academic = any(w in raw_lower for w in ["fellowship", "phd", "grad school", "doctorate", "scholarship", "lab", "dissertation", "adviser", "advisor"])
 
         if is_creative:
+            milestone = "creative work"
+            what_happening = (
+                "You are navigating creative rejection and self-doubt after investing significant energy into your work. "
+                "It is natural to question your abilities when external reception feels discouraging."
+            )
             core_msg = (
                 "Facing repeated rejections in creative work naturally activates intense self-doubt. "
                 "Rejection of a submission is part of the publishing craft, not a final verdict on your talent or your voice."
@@ -595,7 +739,25 @@ class CaseStrategySelector:
             step_msg = (
                 "Identify one specific scene or craft element in your manuscript you feel proud of, and honor your persistent dedication to your work."
             )
+        elif is_academic:
+            milestone = "academic fellowship or advanced program"
+            what_happening = (
+                "Entering a competitive academic fellowship or advanced program naturally triggers intense imposter feelings and fear of being found out. "
+                "These internal doubts often surge precisely when stepping into environments surrounded by accomplished peers."
+            )
+            core_msg = (
+                "Being selected for a competitive program or fellowship reflects external evaluation of your rigorous work and potential. "
+                "Feeling out of place or fearing you will be exposed is a very common reaction to new, high-caliber environments, not proof that you don't belong."
+            )
+            step_msg = (
+                "Ground yourself in observable facts: write down two concrete research questions or skills you brought to this program, reminding yourself that you were chosen on merit."
+            )
         else:
+            milestone = "new role or milestone"
+            what_happening = (
+                "Entering a higher-stakes role or milestone naturally activates internal alarm bells and self-doubt. "
+                "Feeling like an imposter often surges when taking on new responsibilities."
+            )
             core_msg = (
                 "Entering a higher-stakes role naturally activates internal alarm bells. "
                 "Feeling like an imposter does not mean you are one; skills are built through ongoing practice, and past achievements remain real."
@@ -606,14 +768,14 @@ class CaseStrategySelector:
 
         return SelectedStrategy(
             modality="perspective_reappraisal",
-            strategy_id="creative_rejection_reappraisal" if is_creative else "imposter_promotion_reappraisal",
+            strategy_id="creative_rejection_reappraisal" if is_creative else ("academic_fellowship_reappraisal" if is_academic else "imposter_promotion_reappraisal"),
             name="Cognitive Decoupling & Evidence Testing",
             clinical_framework="Cognitive Therapy (Beck, 1979); Burns (1980)",
             rationale=(
-                "The user's language demonstrates disproportionate, globalized self-labeling ('absolute fraud', 'have no talent', 'wasted years') "
-                "that directly conflicts with verified milestones (e.g. promotion to lead, continued manuscript creation). "
-                "Carefully tests extreme thoughts against observable facts."
+                f"The user describes intense feelings of being an imposter or fraud despite verified milestones ({milestone}). "
+                "Testing internalized doubt against concrete, observable evidence helps restore perspective without invalidating the emotional difficulty."
             ),
+            what_may_be_happening=what_happening,
             confidence=0.84,
             is_uncertain=True,
             alternative_modalities=["validation"],
@@ -654,16 +816,183 @@ class CaseStrategySelector:
             ),
         )
 
+    def _select_collaboration_injustice(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="collaboration_injustice_advocacy",
+            name="Team Collaboration Inequity & Objective Self-Advocacy",
+            clinical_framework="Emotion-Focused Therapy (Greenberg, 2002); Relational Boundary Framework",
+            rationale=(
+                "The user has carried the burden of uncooperative team partners and is facing an unfair shared grading policy. "
+                "Validates anger and frustration as legitimate emotional responses to external inequity, while establishing practical options for objective advocacy."
+            ),
+            what_may_be_happening=(
+                "You have shouldered the workload of an uncooperative project team alone, and are now facing the understandable frustration of an unfair shared grading policy from your professor."
+            ),
+            confidence=0.90,
+            is_uncertain=False,
+            alternative_modalities=["locus_of_agency"],
+            contraindications=[
+                "do_not_gaslight_or_excuse_uninvolved_teammates",
+                "do_not_frame_injustice_as_a_cognitive_distortion",
+                "do_not_blame_user_for_partners_absence",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Feeling furious and frustrated is completely warranted when your dedicated labor is shared with teammates who contributed nothing. "
+                "Your frustration is a healthy signal that your effort deserves fair recognition, not an emotional flaw."
+            ),
+            suggested_step=(
+                "Gather your commit logs, work timestamps, and team communication attempts into an objective record before scheduling a conversation with your professor."
+            ),
+        )
+
+    def _select_sports_injury_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="sports_injury_identity_compassion",
+            name="Physical Injury Processing & Identity Grounding",
+            clinical_framework="Compassion-Focused Therapy (Gilbert, 2009); Somatic Acceptance",
+            rationale=(
+                "A sudden physical injury has sidelined the user right before crucial tryouts, causing grief over the disruption of their primary sport and athletic identity. "
+                "Validates athletic displacement and provides compassionate permission to heal without feeling like personal worth is lost."
+            ),
+            what_may_be_happening=(
+                "A sudden physical injury has sidelined you right before crucial tryouts, causing deep grief over the temporary loss of your sport and athletic identity."
+            ),
+            confidence=0.92,
+            is_uncertain=False,
+            alternative_modalities=["non_interventional_grounding"],
+            contraindications=[
+                "do_not_demand_premature_physical_activity",
+                "do_not_dismiss_athletic_grief_as_trivial",
+                "do_not_frame_physical_injury_as_personal_failure",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Grieving the loss of a season and feeling displaced from your sport is completely legitimate. "
+                "Your value, dedication, and identity as an athlete are not erased simply because your body requires time on crutches to heal."
+            ),
+            suggested_step=(
+                "Honor your body's need for physical rest today, and consider reaching out to a teammate or coach to stay connected from the sidelines."
+            ),
+        )
+
+    def _select_resource_strain_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="validation",
+            strategy_id="resource_strain_compassionate_pacing",
+            name="Resource Strain Validation & Basic Needs Grounding",
+            clinical_framework="Problem-Solving Therapy (PST); Compassion-Focused Coping",
+            rationale=(
+                "The user is experiencing acute pressure from escalating financial obligations (rent, tuition) and sacrificing basic physical needs (skipping meals) to keep everything afloat. "
+                "Prioritizes restoring physical nourishment and basic safety over aggressive problem-solving."
+            ),
+            what_may_be_happening=(
+                "You are carrying severe pressure from escalating living costs and family obligations, and making painful sacrifices like skipping meals to keep everything afloat."
+            ),
+            confidence=0.88,
+            is_uncertain=False,
+            alternative_modalities=["practical_structuring"],
+            contraindications=[
+                "do_not_minimize_real_financial_hardship",
+                "do_not_demand_instant_long_term_financial_solutions",
+                "do_not_blame_user_for_external_economic_costs",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "Facing sharp increases in essential expenses while supporting family is an acute, real-world hardship. "
+                "Skipping meals is a sign of immense strain, not personal failure; protecting your basic physical nourishment and rest is essential so you have the strength to navigate next steps."
+            ),
+            suggested_step=(
+                "Eat one nourishing meal today to support your physical stamina, then identify one immediate expense or support contact to review tomorrow."
+            ),
+        )
+
+    def _select_creative_block_reappraisal(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="perspective_reappraisal",
+            strategy_id="creative_drought_normalization",
+            name="Normalizing Creative Cycles & Rest Permission",
+            clinical_framework="Acceptance and Commitment Therapy (ACT); Creative Grounding",
+            rationale=(
+                "The user is experiencing creative exhaustion and self-doubt after prolonged effort at the canvas, fearing their creative voice has permanently dried up. "
+                "Normalizes artistic rhythm and separates current expressive output from intrinsic worth."
+            ),
+            what_may_be_happening=(
+                "You are experiencing creative drought and intense self-doubt after prolonged effort at the canvas, leading to fears that your creative voice has permanently dried up."
+            ),
+            confidence=0.88,
+            is_uncertain=False,
+            alternative_modalities=["validation"],
+            contraindications=[
+                "do_not_force_immediate_artistic_production",
+                "do_not_frame_creative_rest_as_laziness",
+            ],
+            reframe_needed=True,
+            core_message=(
+                "A period of feeling hollow does not mean your voice has vanished. "
+                "Creative energy moves in natural rhythms of absorption and expression; when the well feels dry, the remedy is low-stakes rest and patience, not forced output."
+            ),
+            suggested_step=(
+                "Step away from the blank canvas for today and engage in a restful, non-evaluative activity without judging your progress."
+            ),
+        )
+
     def _select_general_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
+        fact_names = [f.text for f in rep.stated_facts if f.text]
+        if not fact_names and rep.stated_thoughts:
+            fact_names = [t.statement for t in rep.stated_thoughts if t.statement]
+        if not fact_names and len(rep.raw_text.split()) > 3:
+            fact_names = [rep.raw_text.strip().rstrip(".?!")]
+
+        facts_str = ", ".join(dict.fromkeys(fact_names[:2])) if fact_names else ""
+        emotions_str = ", ".join(dict.fromkeys(e.emotion_word for e in rep.stated_emotions[:2])) if rep.stated_emotions else ""
+
+        if facts_str and emotions_str:
+            what_happening = f"You are carrying meaningful tension around {facts_str}, which is bringing up feelings of {emotions_str}."
+            core_msg = (
+                f"Experiencing tension around {facts_str} is a natural and understandable reaction. "
+                "You do not have to carry the entire weight all at once or solve everything today; giving yourself patience is valid and necessary."
+            )
+        elif facts_str:
+            what_happening = f"You are navigating significant demands and circumstances involving {facts_str}."
+            core_msg = (
+                f"Facing challenging circumstances around {facts_str} is a real burden. "
+                "You do not have to have every answer sorted out immediately to deserve support and steady pacing."
+            )
+        elif emotions_str:
+            what_happening = f"You are experiencing real emotional weight and feelings of {emotions_str} right now."
+            core_msg = (
+                f"Feeling {emotions_str} is an understandable human experience when navigating uncertainty. "
+                "Treating yourself with patient self-compassion allows you to find steady ground."
+            )
+        else:
+            what_happening = f"You are carrying the emotional weight of what you described: \"{rep.raw_text.strip()}\"."
+            core_msg = (
+                "What you are experiencing in this situation is valid and real. "
+                "You do not have to carry the whole weight all at once; giving yourself patience and steady pacing is a necessary step."
+            )
+
+        if rep.user_goal:
+            next_step = f"Take one small, manageable step toward {rep.user_goal} while honoring your natural daily pace."
+        elif facts_str:
+            next_step = f"Take a quiet pause, and when you feel ready, focus strictly on one small, manageable priority regarding {facts_str} while letting the rest wait."
+        elif rep.unknowns.missing_aspects and any("preferred support" in m for m in rep.unknowns.missing_aspects):
+            next_step = "What part of this experience feels most pressing or important for you to unpack right now?"
+        else:
+            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
+
         return SelectedStrategy(
             modality="validation",
             strategy_id="general_grounded_validation",
             name="Grounded Validation & Presence",
             clinical_framework="Person-Centered Counseling; CFT",
             rationale=(
-                "Acknowledge the user's specific context without imposing premature reframing. "
+                f"Acknowledge the user's specific context ({facts_str or 'personal reflection'}) without imposing premature reframing. "
                 "Provides empathetic validation and encourages taking things one manageable moment at a time."
             ),
+            what_may_be_happening=what_happening,
             confidence=0.75,
             is_uncertain=True,
             alternative_modalities=["clarification_needed", "locus_of_agency"],
@@ -671,6 +1000,6 @@ class CaseStrategySelector:
                 "do_not_impose_unsupported_reframe",
             ],
             reframe_needed=False,
-            core_message="Navigating uncertainty and difficult moments is a real burden. You don't have to carry the whole weight at once; giving yourself patience is a valid and necessary step.",
-            suggested_step="Take one quiet moment to pause and focus on what feels most grounding for you right now.",
+            core_message=core_msg,
+            suggested_step=next_step,
         )

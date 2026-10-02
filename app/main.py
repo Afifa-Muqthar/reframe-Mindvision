@@ -78,7 +78,11 @@ def media(filename):
 
 @app.route("/process", methods=["POST"])
 def process():
-    text = request.form.get("text", "").strip()
+    text = ""
+    if request.is_json:
+        text = (request.get_json(silent=True) or {}).get("text", "").strip()
+    if not text:
+        text = request.form.get("text", "").strip()
     audio_file = request.files.get("audio")
 
     if audio_file and not text:
@@ -180,6 +184,7 @@ def process():
         )
         what_happening_str = (
             selected_strategy.what_may_be_happening
+            or case_rep.descriptive_summary
             or selected_strategy.rationale
         )
         next_step_str = (

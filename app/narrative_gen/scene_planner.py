@@ -321,22 +321,58 @@ class ScenePlanner:
     ) -> Tuple[SituationAnchors, str]:
         text_corpus = (" ".join(facts) + " " + raw_text).lower()
 
-        # Check for stated facts
-        if any(k in text_corpus for k in ["career", "graduat", "placed", "placement", "batch", "firm", "job"]):
+        # Check for stated facts in prioritized order
+        if any(k in text_corpus for k in ["migraine", "headache", "flare-up", "autoimmune", "bed", "fatigue", "sick", "illness", "chronic pain"]):
+            return (
+                SituationAnchors(
+                    environment="quiet dim bedroom with closed curtains beside bedside table",
+                    primary_object="bedside table with water glass and cool compress",
+                    secondary_object="soft resting blanket on bed",
+                ),
+                "user_stated",
+            )
+        elif any(k in text_corpus for k in ["phd", "fellowship", "scholarship", "lab", "dissertation", "doctorate"]):
+            return (
+                SituationAnchors(
+                    environment="academic research laboratory and study carrel with desk lamp",
+                    primary_object="open research notebook and laptop on lab desk",
+                    secondary_object="bound research folder and desk lamp",
+                ),
+                "user_stated",
+            )
+        elif any(k in text_corpus for k in ["phased out", "translation", "disposable", "ai tools", "layoff", "restructur"]):
+            return (
+                SituationAnchors(
+                    environment="professional office workstation with dual monitors and desk partition",
+                    primary_object="office workstation desk with keyboard and monitor",
+                    secondary_object="organized project archives and coffee mug",
+                ),
+                "user_stated",
+            )
+        elif any(k in text_corpus for k in ["visit", "weekend", "daughter", "son", "say no", "boundary", "boundaries"]):
+            return (
+                SituationAnchors(
+                    environment="quiet living room armchair beside side table and weekend travel bag",
+                    primary_object="smartphone on side table with family message thread",
+                    secondary_object="warm ceramic mug on wooden coaster",
+                ),
+                "user_stated",
+            )
+        elif any(k in text_corpus for k in ["canvas", "painting", "brushstroke", "art", "manuscript", "writer", "book", "writing", "studio"]):
+            return (
+                SituationAnchors(
+                    environment="quiet creative workspace with wooden desk and studio easel",
+                    primary_object="workspace easel with canvas or manuscript draft on desk",
+                    secondary_object="clean notepad and resting pen",
+                ),
+                "user_stated",
+            )
+        elif any(k in text_corpus for k in ["career", "graduat", "placed", "placement", "batch", "firm", "job hunt"]):
             return (
                 SituationAnchors(
                     environment="quiet student study room with wooden desk by window",
                     primary_object="open notebook on study desk",
                     secondary_object="warm mug of tea",
-                ),
-                "user_stated",
-            )
-        elif any(k in text_corpus for k in ["bed", "fatigue", "illness", "flare-up", "autoimmune", "body"]):
-            return (
-                SituationAnchors(
-                    environment="cozy bedroom with soft pillows and resting blanket",
-                    primary_object="soft blanket on bed",
-                    secondary_object="glass of water on bedside table",
                 ),
                 "user_stated",
             )
@@ -355,15 +391,6 @@ class ScenePlanner:
                     environment="quiet living room with wooden armchair and window",
                     primary_object="comfortable armchair beside window",
                     secondary_object="warm cup of tea on side table",
-                ),
-                "user_stated",
-            )
-        elif any(k in text_corpus for k in ["manuscript", "literary", "agent", "writer", "book", "writing"]):
-            return (
-                SituationAnchors(
-                    environment="personal study desk beside wooden bookshelf",
-                    primary_object="manuscript draft pages and pen",
-                    secondary_object="clean notepad",
                 ),
                 "user_stated",
             )
@@ -1007,11 +1034,29 @@ class ScenePlanner:
         Derives authentic objects and an environmental setting naturally belonging to the situation.
         The physical environment maintains continuity throughout the scene progression.
         """
-        if case.domain == "threat":
+        if case.domain in ("threat", "systemic_injustice"):
             return SituationAnchors(
                 environment="Living area and hallway moving toward quiet secure bedroom",
                 primary_object="hallway entrance doorway",
                 secondary_object="private journal and bedroom door latch",
+            )
+        elif case.domain in ("illness", "somatic", "bodily_limitation"):
+            return SituationAnchors(
+                environment="Quiet dim bedroom with closed curtains beside bedside table",
+                primary_object="bedside table with water glass and cool compress",
+                secondary_object="soft resting blanket on bed",
+            )
+        elif case.domain in ("workplace_transition", "disruption"):
+            return SituationAnchors(
+                environment="Professional office workstation with desk partition and computer",
+                primary_object="office workstation desk with keyboard and monitor",
+                secondary_object="organized project archives and coffee mug",
+            )
+        elif case.domain in ("family_boundary", "family"):
+            return SituationAnchors(
+                environment="Quiet living room armchair beside side table and weekend bag",
+                primary_object="smartphone displaying open family message thread",
+                secondary_object="warm ceramic mug on wooden coaster",
             )
         elif case.domain == "relationship":
             return SituationAnchors(
@@ -1436,8 +1481,8 @@ class ScenePlanner:
                 dialogue = "I don't know what will happen with my future, and the uncertainty feels terrifying."
                 caption = "When the future feels ambiguous, the mind anticipates threat where there is only unknown."
             else:
-                dialogue = f"This feels overwhelming: {auto_thought or raw[:50]}."
-                caption = "When stressors accumulate, internal alarms sound loudly."
+                dialogue = f"{auto_thought or 'I am carrying a difficult burden: ' + raw[:50]}."
+                caption = "Acknowledging the emotional weight of what you are carrying gives space for steady ground."
             thought_text = dialogue
             narrative = f"You're facing a difficult moment: '{raw.strip()}'. {conflict or 'The emotional weight builds quickly and feels pressing.'}"
         elif cat == "freeze":

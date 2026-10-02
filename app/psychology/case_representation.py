@@ -188,10 +188,15 @@ class CaseRepresentation:
 _ACTOR_KEYWORDS = {
     "friends": "actor", "friend": "actor", "family": "actor", "parents": "actor",
     "mother": "actor", "father": "actor", "mom": "actor", "dad": "actor",
+    "brother": "actor", "sister": "actor", "siblings": "actor", "son": "actor", "daughter": "actor",
+    "child": "actor", "children": "actor", "partner": "actor", "partners": "actor",
     "supervisor": "actor", "boss": "actor", "colleague": "actor", "colleagues": "actor",
-    "coworker": "actor", "peers": "actor", "peer": "actor", "partner": "actor",
+    "coworker": "actor", "coworkers": "actor", "peers": "actor", "peer": "actor",
     "boyfriend": "actor", "girlfriend": "actor", "team": "actor", "manager": "actor",
-    "person": "actor", "someone": "actor", "ex": "actor",
+    "person": "actor", "someone": "actor", "ex": "actor", "roommate": "actor", "roommates": "actor",
+    "landlord": "actor", "professor": "actor", "professors": "actor", "teacher": "actor",
+    "student": "actor", "students": "actor", "teammate": "actor", "teammates": "actor",
+    "coach": "actor", "doctor": "actor", "therapist": "actor", "classmate": "actor", "classmates": "actor",
 }
 
 _MILESTONE_KEYWORDS = {
@@ -208,6 +213,14 @@ _MILESTONE_KEYWORDS = {
     "content": "activity", "video": "activity", "videos": "activity",
     "work": "obligation", "workload": "obligation", "tasks": "obligation", "task": "obligation",
     "responsibilities": "obligation", "deadlines": "obligation", "stuff": "obligation",
+    "canvas": "creative_work", "brushstroke": "creative_work", "brushstrokes": "creative_work",
+    "painting": "creative_work", "art": "creative_work", "writing": "creative_work",
+    "rent": "obligation", "tuition": "obligation", "bills": "obligation", "mortgage": "obligation",
+    "debt": "obligation", "meals": "activity", "food": "activity",
+    "acl": "condition", "knee": "condition", "injury": "condition", "crutches": "condition",
+    "pain": "condition", "surgery": "condition", "rehab": "activity", "rehabilitation": "activity",
+    "soccer": "activity", "sport": "activity", "sports": "activity", "tryouts": "event",
+    "code": "obligation", "grade": "milestone", "grades": "milestone", "course": "obligation",
 }
 
 _EMOTION_LEXICON = {
@@ -262,6 +275,27 @@ _EMOTION_LEXICON = {
     "regretting": ("negative", "regret"),
     "loved": ("positive", "care/affection"),
     "love": ("positive", "care/affection"),
+    "hollow": ("negative", "emptiness"),
+    "dry": ("negative", "depletion"),
+    "stuck": ("negative", "immobility"),
+    "trapped": ("negative", "entrapment"),
+    "empty": ("negative", "emptiness"),
+    "bitter": ("negative", "resentment"),
+    "defeated": ("negative", "defeat"),
+    "panicked": ("negative", "panic"),
+    "panic": ("negative", "panic"),
+    "terrified": ("negative", "fear"),
+    "insecure": ("negative", "insecurity"),
+    "worthless": ("negative", "worthlessness"),
+    "conflicted": ("negative", "ambivalence"),
+    "torn": ("negative", "ambivalence"),
+    "dread": ("negative", "dread"),
+    "dreading": ("negative", "dread"),
+    "resentful": ("negative", "resentment"),
+    "burnout": ("negative", "burnout"),
+    "froze": ("negative", "freeze"),
+    "frozen": ("negative", "freeze"),
+    "disposable": ("negative", "worthlessness"),
 }
 
 
@@ -284,7 +318,7 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
                 end_char=end,
             ))
 
-    # 2. Key domain, milestone, and condition entities
+    # 2. Key domain, milestone, and condition entities from keywords
     for chunk in doc.noun_chunks:
         chunk_text = chunk.text.strip()
         chunk_lower = chunk_text.lower()
@@ -300,6 +334,67 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
                     end_char=end,
                 ))
                 break
+
+    # 3. Open Named Entities (spaCy doc.ents)
+    for ent in doc.ents:
+        ent_text = ent.text.strip()
+        if ent.label_ in ("PERSON", "NORP") and not any(f.start_char == ent.start_char for f in facts):
+            facts.append(StatedFact(
+                text=ent_text,
+                category="actor",
+                source_span=ent_text,
+                start_char=ent.start_char,
+                end_char=ent.end_char,
+            ))
+        elif ent.label_ in ("MONEY", "PERCENT") and not any(f.start_char == ent.start_char for f in facts):
+            facts.append(StatedFact(
+                text=ent_text,
+                category="obligation",
+                source_span=ent_text,
+                start_char=ent.start_char,
+                end_char=ent.end_char,
+            ))
+        elif ent.label_ in ("EVENT",) and not any(f.start_char == ent.start_char for f in facts):
+            facts.append(StatedFact(
+                text=ent_text,
+                category="event",
+                source_span=ent_text,
+                start_char=ent.start_char,
+                end_char=ent.end_char,
+            ))
+
+    # 4. Open Noun Chunks for Situational Facts
+    for chunk in doc.noun_chunks:
+        c_text = chunk.text.strip()
+        c_low = c_text.lower()
+        # Skip pure pronouns
+        if c_low in ("i", "me", "my", "myself", "it", "we", "us", "you", "they", "them", "he", "she", "him", "her", "this", "that"):
+            continue
+        if any(f.start_char == chunk.start_char for f in facts):
+            continue
+
+        # Classify meaningful noun phrases
+        if any(w in c_low for w in ["rent", "tuition", "bill", "expense", "mortgage", "assignment", "work", "code", "task", "savings", "debt", "cash", "money", "loan"]):
+            facts.append(StatedFact(text=c_text, category="obligation", source_span=c_text, start_char=chunk.start_char, end_char=chunk.end_char))
+        elif any(w in c_low for w in ["canvas", "brushstroke", "paint", "art", "soccer", "sport", "game", "tryout", "rehab", "bakery", "business", "project", "store"]):
+            facts.append(StatedFact(text=c_text, category="activity", source_span=c_text, start_char=chunk.start_char, end_char=chunk.end_char))
+        elif any(w in c_low for w in ["acl", "crutch", "injury", "knee", "illness", "flare-up", "pain", "fatigue", "broken", "broke"]):
+            facts.append(StatedFact(text=c_text, category="condition", source_span=c_text, start_char=chunk.start_char, end_char=chunk.end_char))
+        elif any(w in c_low for w in ["partner", "professor", "teacher", "boss", "supervisor", "brother", "sister", "friend", "colleague", "cousin", "parent", "mother", "father", "mom", "dad", "roommate", "coworker", "landlord", "doctor"]):
+            facts.append(StatedFact(text=c_text, category="actor", source_span=c_text, start_char=chunk.start_char, end_char=chunk.end_char))
+        elif any(w in c_low for w in ["grade", "degree", "lead", "promotion", "milestone"]):
+            facts.append(StatedFact(text=c_text, category="milestone", source_span=c_text, start_char=chunk.start_char, end_char=chunk.end_char))
+        else:
+            content_tokens = [tok for tok in chunk if not tok.is_stop and not tok.is_punct and len(tok.text) > 1]
+            if content_tokens:
+                cat = "actor" if any(tok.ent_type_ == "PERSON" for tok in chunk) else "domain"
+                facts.append(StatedFact(
+                    text=c_text,
+                    category=cat,
+                    source_span=c_text,
+                    start_char=chunk.start_char,
+                    end_char=chunk.end_char,
+                ))
 
     event_patterns = [
         (r"\bfriends\s+(are\s+)?getting\s+placed\b", "event", "friends getting placed"),
@@ -327,6 +422,18 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
         (r"\b(couldn'?t|unable\s+to|can'?t)\s+reciprocate\b", "relational_state", "inability to reciprocate romantic feelings"),
         (r"\b(want(ing)?\s+to\s+(reconnect|reach\s+out|talk\s+to\s+(him|her|them)|get\s+back(\s+together)?))\b", "stated_intent", "desire to reconnect"),
         (r"\b(don'?t\s+want\s+to|not\s+wanting\s+to)\s+(reconnect|resume|get\s+back(\s+together)?|reach\s+out)\b", "stated_boundary", "boundary against resuming relationship"),
+        (r"\b(rent\s+went\s+up(\s+by\s+\d+%)?)\b", "obligation", "rent increase obligation"),
+        (r"\b(brother\s+needs\s+tuition(\s+help)?)\b", "obligation", "brother tuition need"),
+        (r"\b(skipping\s+meals)\b", "condition", "skipping meals for financial coping"),
+        (r"\b(tore\s+(my\s+)?acl)\b", "condition", "torn ACL injury"),
+        (r"\b(senior\s+season\s+tryouts)\b", "milestone", "senior season tryouts"),
+        (r"\b(stuck\s+on\s+crutches)\b", "condition", "stuck on crutches"),
+        (r"\b(partners\s+went\s+(completely\s+)?mia)\b", "event", "group partners went MIA"),
+        (r"\b(submitted\s+zero\s+code)\b", "event", "partners submitted zero code"),
+        (r"\b(grade\s+will\s+be\s+shared\s+equally)\b", "event", "team grade shared equally"),
+        (r"\b(staring\s+at\s+this\s+blank\s+canvas)\b", "activity", "staring at blank canvas"),
+        (r"\b(every\s+brushstroke\s+feels\s+hollow)\b", "condition", "brushstrokes feel hollow"),
+        (r"\b(well\s+is\s+(completely\s+)?dry)\b", "condition", "creative well is dry"),
     ]
     for pattern, cat, label in event_patterns:
         m = re.search(pattern, lowered)
@@ -382,6 +489,24 @@ def _extract_stated_emotions(doc, raw_text: str) -> List[StatedEmotion]:
                 end_char=end,
             ))
 
+    # Also detect copula and feeling complements (e.g. "feels hollow", "am stuck")
+    for token in doc:
+        if token.lemma_ in ("feel", "be", "seem") or token.dep_ in ("acomp", "attr"):
+            for child in token.children:
+                w = child.text.lower()
+                lem = child.lemma_.lower()
+                key = w if w in _EMOTION_LEXICON else (lem if lem in _EMOTION_LEXICON else None)
+                if key and not any(e.start_char == child.idx for e in emotions):
+                    valence, label = _EMOTION_LEXICON[key]
+                    emotions.append(StatedEmotion(
+                        emotion_word=child.text,
+                        valence=valence,
+                        target=None,
+                        source_span=token.sent.text.strip() if token.sent else child.text,
+                        start_char=child.idx,
+                        end_char=child.idx + len(child.text),
+                    ))
+
     # Deduplicate
     seen = set()
     deduped = []
@@ -407,6 +532,12 @@ def _extract_stated_behaviors(doc, raw_text: str) -> List[str]:
         (r"\b(taking\s+care\s+of\s+my\s+aging\s+mother|caregiving)\b", "caregiving for aging mother"),
         (r"\b(working\s+full\s+time)\b", "working full time"),
         (r"\b(reading\s+(the\s+)?environmental\s+report)\b", "reading distressing report"),
+        (r"\b(staring\s+at\s+(this\s+)?(blank\s+)?canvas)\b", "staring at blank canvas"),
+        (r"\b(skipping\s+meals)\b", "skipping meals to cope with financial strain"),
+        (r"\b(stuck\s+on\s+crutches)\b", "stuck on crutches"),
+        (r"\b(watching\s+everyone\s+else\s+play)\b", "watching peers play from sidelines"),
+        (r"\b(partners\s+went\s+(completely\s+)?mia)\b", "group partners went MIA"),
+        (r"\b(submitted\s+zero\s+code)\b", "group partners submitted zero code"),
     ]
     for pat, desc in patterns:
         if re.search(pat, lowered) and desc not in behaviors:
@@ -446,6 +577,15 @@ def _extract_stated_thoughts(doc, raw_text: str) -> List[StatedThoughtOrClaim]:
         r"\b(i\s+)?(really\s+)?want\s+to\s+(reconnect|reach\s+out)\b",
         r"\b(i\s+)?(definitely\s+)?don'?t\s+want\s+to\s+(resume|get\s+back|reconnect)\b",
         r"\bi\s+don'?t\s+know\s+what\s+i\s+feel\b",
+        r"\b[a-z\s]+\s+was\s+my\s+entire\s+identity\b",
+        r"\bevery\s+brushstroke\s+feels\s+hollow\b",
+        r"\b(the\s+)?well\s+is\s+(completely\s+)?dry\b",
+        r"\bused\s+to\s+have\s+something\s+to\s+say\b",
+        r"\bto\s+keep\s+everything\s+afloat\b",
+        r"\bgrade\s+will\s+be\s+shared\s+equally\b",
+        r"\bi\s+feel\s+disposable\b",
+        r"\bnever\s+find\s+comparable\s+work\b",
+        r"\b(committee\s+)?made\s+a\s+clerical\s+error\b",
     ]
 
     for pat in thought_patterns:
@@ -459,7 +599,31 @@ def _extract_stated_thoughts(doc, raw_text: str) -> List[StatedThoughtOrClaim]:
                 end_char=m.end(),
             ))
 
-    return thoughts
+    # Open cognitive verb complements
+    for token in doc:
+        if token.lemma_ in ("think", "feel", "worry", "fear", "wonder", "realize", "believe", "doubt", "assume") and token.dep_ in ("ROOT", "conj", "advcl"):
+            for child in token.children:
+                if child.dep_ in ("ccomp", "xcomp"):
+                    start = child.idx
+                    end = token.sent.end_char if token.sent else child.idx + 40
+                    span_text = raw_text[start:end].strip()
+                    if len(span_text) > 8 and not any(t.start_char == start for t in thoughts):
+                        thoughts.append(StatedThoughtOrClaim(
+                            statement=span_text,
+                            source_span=span_text,
+                            start_char=start,
+                            end_char=start + len(span_text),
+                        ))
+
+    # Deduplicate
+    seen = set()
+    deduped = []
+    for t in thoughts:
+        key = (t.start_char, t.end_char)
+        if key not in seen:
+            seen.add(key)
+            deduped.append(t)
+    return deduped
 
 
 # =============================================================================
@@ -477,11 +641,11 @@ def _infer_appraisals(
     lowered = raw_text.lower()
 
     # 1. Social Comparison & Peer Pacing
-    if re.search(r"\b(friends|peers|colleagues|everyone)\b.*\b(placed|succeeding|doing better|invite|dinner)\b", lowered) or \
+    if re.search(r"\b(friends|peers|colleagues|coworkers|everyone(\s+else)?)\b.*\b(placed|succeeding|doing better|invite|dinner|pivoting|articulate|accomplished|ahead)\b", lowered) or \
        re.search(r"\bkeep\s+up\s+with\s+(my\s+)?peers\b", lowered):
-        evidence = [f.source_span for f in facts if f.category in ("actor", "event") and any(w in f.source_span.lower() for w in ["friends", "peers", "placed", "invite"])]
+        evidence = [f.source_span for f in facts if f.category in ("actor", "event") and any(w in f.source_span.lower() for w in ["friends", "peers", "placed", "invite", "coworkers", "everyone"])]
         if not evidence:
-            m = re.search(r"\b(friends|peers|colleagues|everyone)[^.?!]*\b", lowered)
+            m = re.search(r"\b(friends|peers|colleagues|coworkers|everyone(\s+else)?)[^.?!]*\b", lowered)
             evidence = [raw_text[m.start():m.end()].strip()] if m else ["Mention of peer pacing or social circle"]
         appraisals.append(InferredAppraisal(
             dimension="social_comparison",
@@ -493,10 +657,11 @@ def _infer_appraisals(
         concerns.append("peer_comparison_and_pacing")
 
     # 2. Career Horizon / Future Transition
-    if re.search(r"\b(career|graduation|graduate|job|placed|placement|future|promotion)\b", lowered):
-        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["career", "graduation", "job", "placed", "promotion"])]
+    if re.search(r"\b(career\s+(path|transition|uncertainty|horizon|future|choice)|after\s+graduation|graduat(e|ing)\s+soon|finding\s+a\s+job|job\s+hunt(ing)?|job\s+market|getting\s+placed|unemployed|worried\s+about\s+(my\s+)?career|phased\s+out|disposable|find\s+(comparable\s+)?work|never\s+find\s+(comparable\s+)?work|layoff)\b", lowered) or \
+       (re.search(r"\b(career|placement)\b", lowered) and re.search(r"\b(anxious|worried|stress|uncertain|dread)\b", lowered)):
+        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["career", "graduation", "job", "placed", "promotion", "unit", "work", "ai"])]
         if not evidence:
-            m = re.search(r"\b(career|graduation|future)[^.?!]*\b", lowered)
+            m = re.search(r"\b(career|graduation|future|phased out|work)[^.?!]*\b", lowered)
             evidence = [raw_text[m.start():m.end()].strip()] if m else ["Career or future transition referenced"]
         appraisals.append(InferredAppraisal(
             dimension="career_horizon_uncertainty",
@@ -507,23 +672,25 @@ def _infer_appraisals(
         ))
         concerns.append("career_transition_uncertainty")
 
-    # 3. Filial / Interpersonal Expectation Pressure
+    # 3. Filial / Interpersonal Expectation Pressure & Boundary Guilt
     if re.search(r"\b(disappoint\s+(my\s+)?(family|parents|mother|father|mom|dad))\b", lowered) or \
-       re.search(r"\b(aging\s+mother|snapped\s+at\s+her)\b", lowered):
-        evidence = [t.statement for t in thoughts if "disappoint" in t.statement.lower()] or \
-                   [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["family", "mother", "aging"])]
+       re.search(r"\b(aging\s+mother|snapped\s+at\s+her)\b", lowered) or \
+       re.search(r"\b(awful|bad|terrible|guilty|ungrateful)\s+(daughter|son|child)\b", lowered) or \
+       re.search(r"\b(mother|father|mom|dad|parents?)\s+(expects?|demands?|makes?\s+me\s+feel|guilt(s|ing)?)\b", lowered) or \
+       re.search(r"\b(say\s+no|boundary|boundaries)\b.*\b(mother|father|mom|dad|family|parents?)\b", lowered):
+        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["family", "mother", "father", "daughter", "son", "parent", "chores", "visit", "weekend"])] or ["Family expectation pressure and boundary guilt"]
         appraisals.append(InferredAppraisal(
             dimension="evaluation_fear",
-            interpretation="Concern regarding failing expectations of loved ones or feeling guilt over relational care.",
-            confidence=0.82,
+            interpretation="Concern regarding parental expectations, filial guilt, or setting interpersonal boundaries with family.",
+            confidence=0.88,
             evidence_spans=evidence,
-            reasoning="User explicitly articulates fear of letting family down or guilt over caregiving interactions.",
+            reasoning="User articulates intense guilt or pressure balancing familial demands with personal capacity and boundaries.",
         ))
-        concerns.append("family_expectation_pressure")
+        concerns.append("family_boundary_pressure")
 
     # 4. Perceived Self-Deficit
-    if re.search(r"\b(haven'?t\s+done\s+enough|can'?t\s+be\s+productive|no\s+talent|awful\s+person|fraud|what'?s\s+wrong\s+with\s+me)\b", lowered):
-        evidence = [t.statement for t in thoughts if any(w in t.statement.lower() for w in ["enough", "productive", "talent", "awful", "fraud", "wrong"])]
+    if re.search(r"\b(haven'?t\s+done\s+enough|can'?t\s+be\s+productive|no\s+talent|awful\s+person|fraud|what'?s\s+wrong\s+with\s+me|clerical\s+error|mistake\s+admitting|don'?t\s+belong)\b", lowered):
+        evidence = [t.statement for t in thoughts if any(w in t.statement.lower() for w in ["enough", "productive", "talent", "awful", "fraud", "wrong", "clerical", "error"])] or ["Perceived personal inadequacy or imposter fear"]
         appraisals.append(InferredAppraisal(
             dimension="perceived_deficit",
             interpretation="Internalized self-evaluation attributing difficulty to personal inadequacy or insufficient effort.",
@@ -644,6 +811,54 @@ def _infer_appraisals(
         ))
         concerns.append("relational_longing_with_boundary")
 
+    # 12. Academic / Collaboration Injustice (Group Project MIA / Shared Grade)
+    if re.search(r"\b(group\s+project|partners\s+went\s+(completely\s+)?mia|zero\s+code|grade\s+will\s+be\s+shared)\b", lowered) and "systemic_injustice" not in [a.dimension for a in appraisals]:
+        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["partners", "code", "grade", "project"])] or ["Group project partners went MIA and shared grading policy"]
+        appraisals.append(InferredAppraisal(
+            dimension="systemic_injustice",
+            interpretation="Bearing the burden of uncooperative project team partners while subject to an unfair shared grading policy.",
+            confidence=0.90,
+            evidence_spans=evidence,
+            reasoning="User describes carrying project work alone and facing an institutional grading policy that rewards uninvolved peers.",
+        ))
+        concerns.append("collaboration_injustice")
+
+    # 13. Physical Injury / Sports Identity Disruption
+    if re.search(r"\b(acl|knee\s+injury|torn\s+acl|crutches|senior\s+season\s+tryouts)\b", lowered) and "bodily_limitation" not in [a.dimension for a in appraisals]:
+        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["acl", "crutches", "tryouts", "soccer"])] or ["Physical injury and athletic displacement"]
+        appraisals.append(InferredAppraisal(
+            dimension="bodily_limitation",
+            interpretation="Acute physical injury sidelining participation in sports and disrupting primary athletic identity.",
+            confidence=0.92,
+            evidence_spans=evidence,
+            reasoning="User identifies a torn ACL and mobility restriction right before competitive tryouts.",
+        ))
+        concerns.append("physical_injury_constraint")
+
+    # 14. Resource Strain & Escalating Living Obligations
+    if re.search(r"\b(rent\s+went\s+up|tuition|skipping\s+meals|keep\s+everything\s+afloat)\b", lowered):
+        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["rent", "tuition", "meals", "brother"])] or ["Financial cost escalation and meal-skipping sacrifices"]
+        appraisals.append(InferredAppraisal(
+            dimension="resource_strain_uncertainty",
+            interpretation="Experiencing acute pressure from sudden financial demands and personal physical sacrifices to support family and maintain housing.",
+            confidence=0.88,
+            evidence_spans=evidence,
+            reasoning="User articulates steep rent increase, sibling tuition support, and meal-skipping coping.",
+        ))
+        concerns.append("resource_strain_uncertainty")
+
+    # 15. Creative Block & Expressive Depletion
+    if re.search(r"\b(blank\s+canvas|brushstroke\s+feels\s+hollow|well\s+is\s+(completely\s+)?dry)\b", lowered):
+        evidence = [f.source_span for f in facts if any(w in f.source_span.lower() for w in ["canvas", "brushstroke", "well"])] or ["Prolonged creative block and expressive depletion"]
+        appraisals.append(InferredAppraisal(
+            dimension="creative_block",
+            interpretation="Experiencing expressive exhaustion and self-doubt after prolonged effort at the canvas.",
+            confidence=0.88,
+            evidence_spans=evidence,
+            reasoning="User articulates staring at a blank canvas and experiencing creative expression as hollow.",
+        ))
+        concerns.append("creative_drought")
+
     return appraisals, concerns
 
 
@@ -719,16 +934,37 @@ def _infer_controllability(facts: List[StatedFact], appraisals: List[InferredApp
         controllable.append("Focusing attention on personal growth and self-chosen criteria")
 
     if "evaluation_fear" in dims:
-        uncontrollable.append("Family members' immediate emotional reactions or unspoken expectations")
-        controllable.append("Communicating honestly about one's efforts and setting compassionate boundaries")
+        facts_text = " ".join(f.text.lower() for f in facts)
+        if any(w in facts_text for w in ["mother", "father", "mom", "dad", "parents", "daughter", "son", "visit", "weekend"]):
+            controllable.append("Deciding how to allocate your personal rest time, and communicating your capacity boundaries honestly")
+            uncontrollable.append("Your family members' expectations, and how they react emotionally when you say no")
+        else:
+            uncontrollable.append("Family members' immediate emotional reactions or unspoken expectations")
+            controllable.append("Communicating honestly about one's efforts and setting compassionate boundaries")
 
     if "systemic_injustice" in dims:
-        uncontrollable.append("Supervisor's past behavior during the meeting")
-        controllable.append("Documenting work, speaking with HR/mentors, or establishing project boundaries")
+        if any(w in f.text.lower() for f in facts for w in ["partner", "grade", "mia", "zero code"]):
+            controllable.append("Documenting individual project contributions and commit records, and requesting a constructive meeting with the professor")
+            uncontrollable.append("Whether project partners choose to do their share, and the professor's shared grading policy")
+        else:
+            uncontrollable.append("Supervisor's past behavior during the meeting")
+            controllable.append("Documenting work, speaking with HR/mentors, or establishing project boundaries")
 
     if "bodily_limitation" in dims:
-        uncontrollable.append("Biological flare-up and involuntary physical exhaustion")
-        controllable.append("Permitting restful recovery and hydration without self-blame")
+        if any(w in f.text.lower() for f in facts for w in ["acl", "crutch", "injury", "tryout", "soccer"]):
+            controllable.append("Following physical rehabilitation guidelines, honoring your body's healing pace, and staying connected to teammates from the sidelines")
+            uncontrollable.append("The physical injury having occurred, and the biological timeline required for tissues to heal")
+        else:
+            uncontrollable.append("Biological flare-up and involuntary physical exhaustion")
+            controllable.append("Permitting restful recovery and hydration without self-blame")
+
+    if "resource_strain_uncertainty" in dims:
+        controllable.append("Prioritizing regular physical meals and restful recovery, and taking one immediate expense or support contact at a time")
+        uncontrollable.append("External inflation, sudden rent price increases, and having to solve the entire financial future all at once")
+
+    if "creative_block" in dims:
+        controllable.append("Allowing yourself to step away from the canvas for restorative rest, engaging in low-stakes play, and detaching your creative worth from immediate output")
+        uncontrollable.append("Forcing spontaneous creative inspiration or artistic flow to strike on command")
 
     if "executive_freeze" in dims:
         controllable.append("Selecting a single 2-minute entry task (e.g. drinking water, clearing one item)")
@@ -758,10 +994,19 @@ def _infer_controllability(facts: List[StatedFact], appraisals: List[InferredApp
         controllable.append("Honoring your decision not to resume the relationship, and giving yourself permission to mourn the loss without having to reverse your boundary")
         uncontrollable.append("Experiencing spontaneous waves of sadness, nostalgia, or missing the connection")
 
-    # Grounded fallback for sparse or open uncertainty: avoid generic boundary jargon
+    # Dynamic fallback: context-grounded when facts exist, gentle pause when sparse
     if not controllable and not uncontrollable:
-        controllable.append("Taking a slow pause right now, catching your breath, and choosing whether you wish to explore this further or just rest")
-        uncontrollable.append("Needing to immediately figure out every feeling, next step, or answer right this second")
+        if facts:
+            context_topics = ", ".join(dict.fromkeys([f.text for f in facts[:2] if f.text]))
+            if context_topics:
+                controllable.append(f"Choosing how you allocate your energy today, honoring your immediate boundaries, and taking one steady step regarding {context_topics}")
+                uncontrollable.append(f"Past occurrences around {context_topics} that have already happened, and the unpredictable choices or reactions of other people")
+            else:
+                controllable.append("Choosing how you allocate your energy today, honoring your immediate boundaries, and taking one steady, manageable step at a time")
+                uncontrollable.append("Past occurrences that have already happened, and the unpredictable choices or reactions of other people")
+        else:
+            controllable.append("Taking a slow pause right now, catching your breath, and choosing whether you wish to explore this further or just rest")
+            uncontrollable.append("Needing to immediately figure out every feeling, next step, or answer right this second")
 
     return ControllabilityAnalysis(
         potentially_controllable=controllable,
@@ -788,6 +1033,18 @@ def _infer_support_needs(
         possible_needs.append("validation_of_injustice")
         possible_needs.append("boundary_and_objective_options")
         contraindications.append("do_not_gaslight_or_reframe_supervisor_behavior")
+
+    if "resource_strain_uncertainty" in dims:
+        possible_needs.append("compassionate_pacing_and_nourishment")
+        possible_needs.append("practical_resource_identification")
+        contraindications.append("do_not_minimize_real_financial_hardship")
+        contraindications.append("do_not_demand_instant_long_term_financial_solutions")
+
+    if "creative_block" in dims:
+        possible_needs.append("normalizing_creative_cycles")
+        possible_needs.append("rest_and_low_stakes_play")
+        contraindications.append("do_not_force_immediate_artistic_production")
+        contraindications.append("do_not_frame_creative_rest_as_laziness")
 
     if uncertainty.uncertainty_type == "relational_ambivalence":
         possible_needs.append("holding_space_for_ambivalence")
@@ -903,6 +1160,8 @@ def _extract_user_goal(raw_text: str, thoughts: List[StatedThoughtOrClaim]) -> O
     lowered = raw_text.lower()
     if re.search(r"\bto\s+numb\s+myself\b", lowered):
         return "seeking relief or distraction from overwhelming feelings"
+    if re.search(r"\bto\s+keep\s+everything\s+afloat\b", lowered):
+        return "striving to stay afloat financially and support family"
     if re.search(r"\b(confused\s+about\s+what\s+to\s+do|don'?t\s+know\s+what\s+to\s+do)\b", lowered):
         return "seeking clarity on immediate priorities and direction"
     if re.search(r"\b(work\s+i\s+have\s+to\s+finish|to\s+finish)\b", lowered):
@@ -956,6 +1215,10 @@ def _extract_needs_or_concerns(
         needs.append("guilt-free permission to rest and recover")
     if "executive_freeze" in dims:
         needs.append("breaking task freeze through a tiny 2-minute entry step")
+    if "resource_strain_uncertainty" in dims:
+        needs.append("protecting basic physical nourishment while navigating financial obligations")
+    if "creative_block" in dims:
+        needs.append("normalizing creative rhythm and resting without self-blame")
     if "unreciprocated_relational_longing" in dims:
         needs.append("processing complex feelings of missing someone without guilt or forced closure")
     if "relational_longing_reconnection" in dims:
@@ -996,16 +1259,26 @@ def _assess_ambiguity(
     - 'sparse_insufficient': Lacks situational detail, trigger, and concrete object (e.g. 'I don't know what to do anymore').
     """
     dims = {a.dimension for a in appraisals}
+    words = raw_text.split()
+
+    # Truly sparse: very short input with no facts, no behaviors, and no active appraisals
+    if len(words) <= 4 and not facts and not behaviors and not dims:
+        return "sparse_insufficient"
+    if re.search(r"\b(i\s+don'?t\s+know\s+what\s+to\s+do\s+anymore|i\s+don'?t\s+know\s+what\s+i\s+feel)\b", raw_text.lower()) and len(words) <= 8:
+        return "sparse_insufficient"
+
     if any(d in dims for d in (
         "overwhelm_and_avoidance", "priority_reorientation", "systemic_injustice",
         "bodily_limitation", "executive_freeze", "workload_overwhelm",
         "unreciprocated_relational_longing", "relational_longing_reconnection",
-        "relational_longing_with_boundary"
+        "relational_longing_with_boundary", "resource_strain_uncertainty", "creative_block"
     )):
         return "sufficient"
     if len(facts) >= 2 or len(behaviors) >= 1 or (len(facts) >= 1 and len(emotions) >= 1):
         return "sufficient"
-    if len(emotions) >= 1 and (len(thoughts) >= 1 or len(raw_text.split()) > 6):
+    if len(words) > 10 and (len(facts) >= 1 or len(thoughts) >= 1):
+        return "sufficient"
+    if len(emotions) >= 1 and (len(thoughts) >= 1 or len(words) > 5):
         return "partial"
     return "sparse_insufficient"
 

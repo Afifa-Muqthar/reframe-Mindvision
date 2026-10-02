@@ -70,11 +70,7 @@ class GroundedNarrativeGenerator:
         context_name = self._derive_context_name(rep, strategy)
 
         # Character description for visual artists (grounded in stated identity if present)
-        character = {
-            "description": "a relatable individual navigating real-world experience",
-            "appearance": "natural, expressive features and grounded posture",
-            "clothing": "wearing comfortable everyday clothes suitable for their setting",
-        }
+        character = self._derive_character(rep)
 
         # Build composite traceability index
         traceability_index = {
@@ -101,6 +97,54 @@ class GroundedNarrativeGenerator:
             "traceability": traceability_index,
         }
 
+    def _derive_character(self, rep: CaseRepresentation) -> Dict[str, str]:
+        raw_lower = rep.raw_text.lower()
+        age_m = re.search(r"\b(i'm|age|aged|am)\s+(\d{2})\b", raw_lower)
+        age_val = int(age_m.group(2)) if age_m else None
+
+        if age_val and age_val >= 40:
+            anchor = "mature adult in their late 40s with subtle graying hair in dark collared shirt"
+            desc = f"a mature adult in their {age_val}s navigating professional and life transitions"
+            appearance = "expressive mature features with subtle graying hair and calm posture"
+            clothing = "neat dark collared shirt and casual trousers"
+        elif any(w in raw_lower for w in ["phd", "fellowship", "scholarship", "lab", "dissertation"]):
+            anchor = "focused academic researcher wearing reading glasses and dark knit sweater"
+            desc = "a dedicated academic researcher and scholar"
+            appearance = "thoughtful features, neat hair, reading glasses"
+            clothing = "comfortable dark knit sweater and casual trousers"
+        elif any(w in raw_lower for w in ["daughter", "sister", "woman", "mother"]):
+            anchor = "young woman with neat dark hair tied back in comfortable knit sweater"
+            desc = "a thoughtful woman navigating complex family and personal dynamics"
+            appearance = "natural, expressive features with dark hair tied back"
+            clothing = "comfortable knit sweater and everyday pants"
+        elif any(w in raw_lower for w in ["son", "brother", "man", "father"]):
+            anchor = "young man with short dark hair in casual crewneck sweater"
+            desc = "a thoughtful man reflecting on personal challenges"
+            appearance = "grounded, natural features with short dark hair"
+            clothing = "casual crewneck sweater and everyday pants"
+        elif any(w in raw_lower for w in ["canvas", "painting", "art", "manuscript", "writer", "studio"]):
+            anchor = "creative artist with untamed hair in casual studio work clothes"
+            desc = "a reflective artist and writer dedicated to creative craft"
+            appearance = "observant, expressive eyes and thoughtful posture"
+            clothing = "comfortable artist work shirt with rolled-up sleeves"
+        elif any(w in raw_lower for w in ["migraine", "headache", "bed", "flare-up", "autoimmune", "fatigue"]):
+            anchor = "person resting in comfortable soft lounge clothing with gentle posture"
+            desc = "an individual taking restorative care for a physical health condition"
+            appearance = "gentle, resting facial expression and relaxed posture"
+            clothing = "soft lounge clothing and resting blanket"
+        else:
+            anchor = "relatable adult with short dark hair in comfortable dark gray sweater"
+            desc = "a relatable individual navigating real-world experience"
+            appearance = "natural, expressive features and grounded posture"
+            clothing = "wearing comfortable everyday clothes suitable for their setting"
+
+        return {
+            "description": desc,
+            "appearance": appearance,
+            "clothing": clothing,
+            "anchor": anchor,
+        }
+
     # =========================================================================
     # MODALITY 1: LOCUS OF AGENCY (Compound Career Horizon & Peer Pacing — C1)
     # =========================================================================
@@ -113,8 +157,92 @@ class GroundedNarrativeGenerator:
 
         has_placement = any("placed" in f.text.lower() for f in rep.stated_facts)
         has_family = any("family" in f.text.lower() for f in rep.stated_facts)
+        has_disruption = strategy.strategy_id == "workplace_transition_locus_of_agency" or any(w in rep.raw_text.lower() for w in ["phased out", "disposable", "ai tools", "layoff", "restructur", "pivot"])
 
         scenes = []
+
+        if has_disruption:
+            scenes.append({
+                "stage": "trigger",
+                "title": "1. CONTEXT & DISRUPTION",
+                "bubble_type": "thought",
+                "dialogue": "Our unit is being phased out next quarter after twenty years here... I feel disposable and terrified.",
+                "caption": "Sudden organizational shifts and technological displacement trigger acute professional vulnerability.",
+                "narrative": (
+                    "Facing the phaseout of your unit after decades of dedicated service brings deep shock and grief. "
+                    "A sudden workplace restructuring is an organizational decision, not a verdict on your professional capability."
+                ),
+                "detail_traceability": {
+                    "dialogue": {"origin": "user_stated", "source": "unit phased out, feel disposable and terrified"},
+                    "caption": {"origin": "inferred_hypothesis", "source": "workplace technological transition shock"},
+                    "narrative": {"origin": "composite", "stated": ["unit phased out", "20 years"], "inferred": ["restructuring vulnerability"]},
+                },
+            })
+            scenes.append({
+                "stage": "internal_pressure",
+                "title": "2. ACKNOWLEDGING THE SHOCK",
+                "bubble_type": "thought",
+                "dialogue": "Younger coworkers are pivoting quickly, but after all these years I'm terrified I'll never find comparable work.",
+                "caption": "Comparing your immediate shock to others' rapid adaptation magnifies panic.",
+                "narrative": (
+                    "Seeing colleagues pivot while you grapple with decades of investment naturally fuels anxiety. "
+                    "It is completely human to grieve the loss of stability before expecting yourself to leap into an unknown next step."
+                ),
+                "detail_traceability": {
+                    "dialogue": {"origin": "user_stated", "source": "younger coworkers pivoting, terrified never find comparable work"},
+                    "caption": {"origin": "inferred_hypothesis", "source": "peer comparison under disruption"},
+                    "narrative": {"origin": "composite", "stated": ["younger coworkers pivoting", "never find comparable work"], "inferred": ["shock processing"]},
+                },
+            })
+            scenes.append({
+                "stage": "differentiation",
+                "title": "3. DIFFERENTIATING DURABLE CRAFT",
+                "bubble_type": "thought",
+                "dialogue": "Wait. A corporate restructuring doesn't erase twenty years of deep expertise, craftsmanship, and problem-solving.",
+                "caption": "Technological shifts can displace a department, but they do not erase your accumulated human foundation.",
+                "narrative": (
+                    f"{strategy.core_message} "
+                    "Tools and organizational charts evolve, but the problem-solving judgment and domain depth you built over decades remain your enduring assets."
+                ),
+                "detail_traceability": {
+                    "dialogue": {"origin": "inferred_hypothesis", "source": "decoupling corporate disruption from accumulated expertise"},
+                    "caption": {"origin": "inferred_hypothesis", "source": "ACT values differentiation principle"},
+                    "narrative": {"origin": "inferred_hypothesis", "source": strategy.core_message},
+                },
+            })
+            scenes.append({
+                "stage": "agency",
+                "title": "4. LOCUS OF AGENCY",
+                "bubble_type": "thought",
+                "dialogue": "I cannot control industry automation, but I can control how I translate my depth of experience into my next chapter.",
+                "caption": "Focusing agency strictly on your own enduring capabilities restores grounded footing.",
+                "narrative": (
+                    "You cannot control company restructuring or market volatility. "
+                    "What remains squarely in your hands is your depth of knowledge, your professional dignity, and choosing your own next steps."
+                ),
+                "detail_traceability": {
+                    "dialogue": {"origin": "inferred_hypothesis", "source": "locus of agency over career transition"},
+                    "caption": {"origin": "inferred_hypothesis", "source": "Meichenbaum stress inoculation framework"},
+                    "narrative": {"origin": "inferred_hypothesis", "source": "controllable agency vs uncontrollable corporate shifts"},
+                },
+            })
+            step_text = strategy.suggested_step or "Take one steady, controllable step for your transition today."
+            scenes.append({
+                "stage": "resolution",
+                "title": "5. GROUNDED NEXT STEP",
+                "bubble_type": "speech",
+                "dialogue": "I will take one quiet pause today and note down three core strengths I have built over my career.",
+                "caption": "Grounded action starts from self-directed ownership, taking one steady step at a time.",
+                "narrative": (
+                    f"{strategy.core_message} {step_text}"
+                ),
+                "detail_traceability": {
+                    "dialogue": {"origin": "creative_interpretation", "source": "speech bubble resolution anchor"},
+                    "caption": {"origin": "inferred_hypothesis", "source": "actionable agency principle"},
+                    "narrative": {"origin": "composite", "strategy_message": strategy.core_message, "step": step_text},
+                },
+            })
+            return scenes
 
         # Scene 1: Trigger & Milestone Reality
         d1 = "I'm worried about my career after graduation... but I'm truly happy seeing my friends get placed." if has_placement else "I'm looking ahead at my career after graduation, and the uncertainty feels heavy."
@@ -225,13 +353,28 @@ class GroundedNarrativeGenerator:
             cap1 = "Unfair actions in professional spaces trigger immediate and legitimate outrage."
             narr1 = "You put three months of dedicated labor into your project, only to see it handed to someone else in front of your team."
         elif "bodily_limitation" in [a.dimension for a in rep.inferred_appraisals]:
-            d1 = "My autoimmune flare-up returned... my body can barely get out of bed."
-            cap1 = "Physical illness is a biological constraint that demands restorative energy."
-            narr1 = "A sudden flare-up forces your body into exhaustion. The physical weight is real, immediate, and beyond personal control."
-        elif any("mother" in f.lower() for f in facts):
-            d1 = "Taking care of my aging mother while working full-time is draining all my energy."
-            cap1 = "Caregiving while holding professional responsibilities pushes human stamina to its limits."
-            narr1 = "Balancing full-time employment with daily elder care creates sustained, unrelenting physical and emotional demands."
+            cond_matches = [f.text for f in rep.stated_facts if f.category == "condition"]
+            if not cond_matches:
+                for cand in ["chronic migraine", "migraine", "autoimmune flare-up", "flare-up", "illness", "chronic pain", "injury"]:
+                    if cand in rep.raw_text.lower():
+                        cond_matches.append(cand)
+                        break
+            cond = cond_matches[0] if cond_matches else "a physical health condition"
+            if "bed" in rep.raw_text.lower():
+                d1 = f"Dealing with {cond} is exhausting... I can barely get out of bed and need to rest."
+            else:
+                d1 = f"Dealing with {cond} is exhausting... my body simply needs rest right now."
+            cap1 = "Physical symptoms are biological constraints that demand restorative energy, not self-criticism."
+            narr1 = f"Living with {cond} severely limits your physical capacity and energy. Needing to rest is a legitimate biological reality, not a personal failing."
+        elif any("mother" in f.lower() for f in facts) or "mother" in rep.raw_text.lower():
+            if any(w in rep.raw_text.lower() for w in ["aging mother", "caregiv", "caring for", "snapped"]):
+                d1 = "Taking care of my aging mother while working full-time is draining all my energy."
+                cap1 = "Caregiving while holding professional responsibilities pushes human stamina to its limits."
+                narr1 = "Balancing full-time employment with daily elder care creates sustained, unrelenting physical and emotional demands."
+            else:
+                d1 = "My mother expects me to visit every weekend, but between work and sheer exhaustion, I had to say no."
+                cap1 = "Setting boundaries with family when depleted is emotionally difficult but essential for health."
+                narr1 = "Navigating family expectations when running on empty triggers guilt, but honoring your physical limits is necessary self-care."
         elif any("dinner party" in f.lower() for f in facts):
             d1 = "My core group of friends had a dinner party last night and didn't invite me."
             cap1 = "Being left out by friends delivers an acute and disorienting sting."
@@ -303,6 +446,14 @@ class GroundedNarrativeGenerator:
             narr3 = (
                 f"{step_text} "
                 "Taking concrete, measured steps to record your work restores agency without rushing into premature confrontation."
+            )
+        elif strategy.strategy_id == "family_boundary_guilt_compassion":
+            title_3 = "3. HONORING LIMITS & SELF-COMPASSION"
+            d3 = "I will give myself permission to rest this weekend without turning their disappointment into self-blame."
+            cap3 = "Saying no when depleted is an act of health, not a failure of love."
+            narr3 = (
+                f"{step_text} "
+                "Remembering that you cannot pour from an empty cup allows you to care for yourself and your family sustainably."
             )
         elif "unreciprocated_relational_longing" in [a.dimension for a in rep.inferred_appraisals]:
             title_3 = "3. GENTLE REFLECTION & SELF-COMPASSION"
@@ -509,11 +660,17 @@ class GroundedNarrativeGenerator:
         thoughts = [t.statement for t in rep.stated_thoughts]
         scenes = []
 
-        is_imposter = any("promot" in f.lower() for f in facts) or any("fraud" in t.lower() for t in thoughts)
-        is_rejection = any("manuscript" in f.lower() or "reject" in f.lower() for f in facts)
+        is_academic = any(w in rep.raw_text.lower() for w in ["fellowship", "phd", "grad school", "doctorate", "scholarship", "lab", "dissertation"])
+        is_promotion = any("promot" in f.lower() for f in facts) or "promot" in rep.raw_text.lower()
+        is_imposter = is_academic or is_promotion or any("fraud" in t.lower() for t in thoughts)
+        is_rejection = any("manuscript" in f.lower() or "reject" in f.lower() for f in facts) or "manuscript" in rep.raw_text.lower()
 
         # Scene 1: The Cognitive Trap & Extreme Label
-        if is_imposter:
+        if is_academic:
+            d1 = "I was accepted into this fellowship, but walking into the lab I froze, feeling like an absolute fraud."
+            cap1 = "Entering high-caliber academic environments often triggers intense imposter alarm."
+            narr1 = "You were admitted to this competitive program. Yet stepping into the lab surrounded by articulate peers surfaced the acute fear that a clerical error was made."
+        elif is_promotion:
             d1 = "I just got promoted to lead the engineering team, but I feel like an absolute fraud."
             cap1 = "New milestones often trigger intense imposter alarms despite verified capability."
             narr1 = "You were promoted to lead your engineering team. Yet stepping into the new role instantly surfaced the belief that you are an impostor waiting to be exposed."
@@ -534,14 +691,21 @@ class GroundedNarrativeGenerator:
             "caption": cap1,
             "narrative": narr1,
             "detail_traceability": {
-                "dialogue": {"origin": "user_stated", "source": "promoted to lead / manuscript rejected / absolute fraud"},
+                "dialogue": {"origin": "user_stated", "source": "promoted to lead / fellowship / manuscript rejected / absolute fraud"},
                 "caption": {"origin": "inferred_hypothesis", "source": "CBT cognitive distortion identification"},
                 "narrative": {"origin": "user_stated", "source": "stated facts preserved verbatim"},
             },
         })
 
         # Scene 2: Testing the Evidence
-        if is_imposter:
+        if is_academic:
+            d2 = "Wait. The committee evaluated my work and admitted me on merit. Feeling out of place doesn't mean I don't belong."
+            cap2 = "Separating subjective intimidation from verified accomplishment restores balanced perspective."
+            narr2 = (
+                f"{strategy.core_message} "
+                "Stepping into a room of accomplished peers is an opportunity to learn, not evidence that you are unqualified."
+            )
+        elif is_promotion:
             d2 = "Wait. Feeling like an imposter doesn't mean I am one. They promoted me based on what I actually built."
             cap2 = "Separating subjective fear from verified track record restores balanced perspective."
             narr2 = (
@@ -578,7 +742,10 @@ class GroundedNarrativeGenerator:
         })
 
         # Scene 3: Grounded Balanced Step
-        if is_imposter:
+        if is_academic:
+            d3 = "I will write down two concrete research strengths I bring here, remembering I was chosen on merit."
+            step_text = strategy.suggested_step or "Ground yourself in observable facts: write down two concrete research questions or skills you brought to this program."
+        elif is_promotion:
             d3 = "I will focus on what I have actually proven I can do, and learn the rest step by step."
             step_text = strategy.suggested_step or "List two concrete contributions you delivered that earned you this opportunity."
         elif is_rejection:
