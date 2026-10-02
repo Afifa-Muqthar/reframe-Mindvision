@@ -349,7 +349,7 @@ class ScenePlanner:
                 ),
                 "user_stated",
             )
-        elif any(k in text_corpus for k in ["visit", "weekend", "daughter", "son", "say no", "boundary", "boundaries"]):
+        elif any(re.search(rf"\b{re.escape(k)}\b", text_corpus) for k in ["visit", "weekend", "daughter", "son", "say no", "boundary", "boundaries"]):
             return (
                 SituationAnchors(
                     environment="quiet living room armchair beside side table and weekend travel bag",
@@ -403,12 +403,21 @@ class ScenePlanner:
                 ),
                 "user_stated",
             )
-        elif any(k in text_corpus for k in ["climate", "planet", "environmental", "future", "tipping point"]):
+        elif any(k in text_corpus for k in ["climate", "planet", "environmental", "global warming", "tipping point"]):
             return (
                 SituationAnchors(
                     environment="bright room beside wide open window looking at sky",
                     primary_object="environmental report on wooden table",
                     secondary_object="small potted window plant",
+                ),
+                "user_stated",
+            )
+        elif any(k in text_corpus for k in ["loop", "proud", "personally", "compare", "growth"]):
+            return (
+                SituationAnchors(
+                    environment="bright, open personal room with sunlight streaming through a window onto a desk",
+                    primary_object="personal journal and resting pen on wooden desk",
+                    secondary_object="warm mug of coffee beside an open window",
                 ),
                 "user_stated",
             )

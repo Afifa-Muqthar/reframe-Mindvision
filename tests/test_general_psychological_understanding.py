@@ -247,6 +247,11 @@ def test_diverse_scenarios_through_process_endpoint(mock_thread, mock_tts, clien
             "and now the professor says our team grade will be shared equally regardless.",
             "project",
         ),
+        (
+            "comparison_loop_break_pride",
+            "i compare alot with my friends and don't want to i'm trying my best to be over it and it's helping me quite immensely and taking everything personally i'm really proud of myself for getting out of this loop",
+            "pride",
+        ),
     ]
 
     for name, input_text, expected_keyword in test_cases:
@@ -282,3 +287,130 @@ def test_diverse_scenarios_through_process_endpoint(mock_thread, mock_tts, clien
         # 5. Non-diagnostic tone
         for pathologizing in PATHOLOGIZING_TERMS:
             assert pathologizing not in all_text, f"Pathologizing term '{pathologizing}' found in {name}"
+
+
+def test_cognitive_loop_break_and_pride_affirmation(selector):
+    """
+    User breaking out of comparison & personalization loops with earned pride.
+    Must extract proud, loop, compare; select cognitive_loop_break_growth_affirmation;
+    reinforce growth and savoring rather than generic crisis burden.
+    """
+    text = (
+        "i compare alot with my friends and don't want to i'm trying my best to be over it "
+        "and it's helping me quite immensely and taking everything personally i'm really proud of myself for getting out of this loop"
+    )
+    rep = extract_case_representation(text)
+    strat = selector.select(rep)
+
+    assert "proud" in [e.emotion_word.lower() for e in rep.stated_emotions]
+    assert "alot" not in [f.text.lower() for f in rep.stated_facts]
+    assert strat.strategy_id == "cognitive_loop_break_growth_affirmation"
+    assert "pride" in strat.core_message.lower() or "proud" in strat.what_may_be_happening.lower()
+    assert "real burden" not in strat.core_message.lower()
+    assert "friends, alot" not in strat.what_may_be_happening.lower()
+
+
+# =============================================================================
+# 9. FUTURE FATIGUE, AMBIGUITY, AND PIPELINE FALLBACK REPORTING
+# =============================================================================
+
+def test_future_fatigue_case_representation_and_strategy(selector):
+    """
+    Regression test for reported user input:
+    'i'm feeling really demotivated and tired of thinking about the future'
+    - Must extract demotivated and tired as stated emotions.
+    - Ambiguity level must be partial/sparse (not falsely sufficient).
+    - Controllability must be future-oriented (no 'past occurrences').
+    - Strategy selector must execute without NameError.
+    - Next step must be a gentle contextual question or rest permission, not 'take a deep breath'.
+    """
+    text = "i'm feeling really demotivated and tired of thinking about the future"
+    rep = extract_case_representation(text)
+
+    # 1. Emotions recognized
+    emotion_words = [e.emotion_word.lower() for e in rep.stated_emotions]
+    assert "demotivated" in emotion_words, "demotivated must be extracted as stated emotion"
+    assert "tired" in emotion_words, "tired must be extracted as stated emotion"
+
+    # 2. Ambiguity correctly marked partial or sparse
+    assert rep.ambiguity_level in ("partial", "sparse_insufficient"), f"Expected partial/sparse, got {rep.ambiguity_level}"
+
+    # 3. Controllability temporally aligned with the future
+    uncontrollable_str = " ".join(rep.controllability.potentially_uncontrollable).lower()
+    assert "past occurrences" not in uncontrollable_str, "Must not mention past occurrences"
+    assert "past" not in uncontrollable_str, "Must not mention past"
+    assert "future" in uncontrollable_str, "Must reflect future uncertainty"
+
+    # 4. Strategy selector execution without NameError
+    strat = selector.select(rep)
+    assert strat.strategy_id == "general_grounded_validation"
+    assert "future" in strat.what_may_be_happening.lower()
+    assert "take a deep breath" not in strat.suggested_step.lower()
+    assert "write down" not in strat.suggested_step.lower()
+
+
+def test_scene_planner_does_not_invent_environmental_report():
+    """
+    Verifies that the isolated word 'future' does not trigger an environmental report scene.
+    """
+    from app.narrative_gen.grounded_generator import GroundedNarrativeGenerator
+    from app.narrative_gen.scene_planner import ScenePlanner
+
+    text = "i'm feeling really demotivated and tired of thinking about the future"
+    rep = extract_case_representation(text)
+    selector = CaseStrategySelector()
+    strat = selector.select(rep)
+
+    generator = GroundedNarrativeGenerator()
+    story = generator.generate(rep, strat)
+
+    planner = ScenePlanner()
+    enriched = planner.plan_grounded_scenes(story, rep, strat)
+
+    all_objs = " ".join(" ".join(s.get("visual_staging", {}).get("objects", [])) for s in enriched).lower()
+    all_env = " ".join(s.get("visual_staging", {}).get("environment", "") for s in enriched).lower()
+
+    assert "environmental report" not in all_objs, "Word 'future' must not invent an environmental report"
+    assert "climate" not in all_env, "Word 'future' must not invent a climate scene"
+
+
+def test_process_endpoint_future_fatigue_grounded(client):
+    """
+    End-to-end /process test for future fatigue input:
+    Verifies pipeline is grounded_pipeline_v1, no fallback occurred, and no generic boilerplate leaks.
+    """
+    text = "i'm feeling really demotivated and tired of thinking about the future"
+    with patch("app.main._run_tts", return_value=None):
+        res = client.post("/process", data={"text": text})
+
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["pipeline"] == "grounded_pipeline_v1"
+    assert data["fallback_occurred"] is False
+    assert data["grounded_error"] is None
+
+    reasoning = data["reasoning"]
+    assert "past" not in reasoning["what_is_not_controllable"].lower()
+    assert "future" in reasoning["what_is_not_controllable"].lower()
+    assert "future" in reasoning["what_may_be_happening"].lower()
+
+    all_reasoning = " ".join(reasoning.values())
+    for generic in GENERIC_BOILERPLATE:
+        assert generic not in all_reasoning, f"Generic boilerplate '{generic}' leaked into reasoning"
+
+
+def test_process_endpoint_exposes_fallback_on_grounded_failure(client):
+    """
+    Verifies that if the grounded pipeline fails, /process explicitly marks
+    fallback_occurred: True, pipeline: 'legacy_pipeline_fallback', and exposes grounded_error.
+    """
+    with patch("app.psychology.case_representation.extract_case_representation", side_effect=RuntimeError("Simulated engine crash")):
+        with patch("app.main._run_tts", return_value=None):
+            res = client.post("/process", data={"text": "testing error handling"})
+
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["fallback_occurred"] is True
+    assert data["pipeline"] == "legacy_pipeline_fallback"
+    assert "Simulated engine crash" in data["grounded_error"]
+

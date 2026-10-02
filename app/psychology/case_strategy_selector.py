@@ -16,6 +16,7 @@ Core Principles:
 - Explicitly enforce contraindications to prevent harmful or gaslighting advice.
 """
 
+import re
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any
 
@@ -70,6 +71,13 @@ class CaseStrategySelector:
             return self._select_clarification(rep)
         if len(rep.stated_facts) == 0 and len(rep.stated_emotions) <= 1 and len(rep.stated_thoughts) == 0 and not rep.uncertainty.has_uncertainty and not dims:
             return self._select_clarification(rep)
+
+        # 1b. Cognitive Loop Break & Growth Affirmation (e.g. breaking comparison loop, feeling proud of progress)
+        if "cognitive_loop_break_growth" in dims or (
+            any(e.emotion_word.lower() in ("proud", "pride") for e in rep.stated_emotions)
+            and any(w in rep.raw_text.lower() for w in ["loop", "compare", "personally", "habit", "pattern", "myself"])
+        ):
+            return self._select_cognitive_loop_break_growth(rep)
 
         # 2. Legitimate External Wrong / Systemic Injustice -> Validation (Zero Reframe)
         if "systemic_injustice" in dims:
@@ -154,6 +162,10 @@ class CaseStrategySelector:
         # 14. Shifting Priorities & Direction Uncertainty
         if "priority_reorientation" in dims or (rep.uncertainty.has_uncertainty and rep.uncertainty.uncertainty_type == "priority_uncertainty"):
             return self._select_priority_uncertainty(rep)
+
+        # 14b. Pure Peer / Social Comparison
+        if "social_comparison" in dims:
+            return self._select_social_comparison_differentiation(rep)
 
         # 15. Check sparse fallback if unhandled
         if getattr(rep, "ambiguity_level", "sufficient") == "sparse_insufficient":
@@ -723,11 +735,13 @@ class CaseStrategySelector:
     def _select_perspective_reappraisal(self, rep: CaseRepresentation) -> SelectedStrategy:
         facts_text = " ".join([f.text.lower() for f in rep.stated_facts])
         raw_lower = rep.raw_text.lower()
-        is_creative = "manuscript" in facts_text or "writing" in facts_text or "art" in facts_text
-        is_academic = any(w in raw_lower for w in ["fellowship", "phd", "grad school", "doctorate", "scholarship", "lab", "dissertation", "adviser", "advisor"])
+        is_creative = any(re.search(rf"\b{re.escape(w)}\b", facts_text) for w in ["manuscript", "writing", "art", "canvas", "painting", "novel", "draft"])
+        is_academic = any(re.search(rf"\b{re.escape(w)}\b", raw_lower) for w in ["fellowship", "phd", "grad school", "doctorate", "scholarship", "lab", "dissertation", "adviser", "advisor"])
+        is_relationship = any(re.search(rf"\b{re.escape(w)}\b", raw_lower) for w in ["partner", "relationship", "spouse", "husband", "wife", "boyfriend", "girlfriend"])
 
         if is_creative:
             milestone = "creative work"
+            strategy_id = "creative_rejection_reappraisal"
             what_happening = (
                 "You are navigating creative rejection and self-doubt after investing significant energy into your work. "
                 "It is natural to question your abilities when external reception feels discouraging."
@@ -741,6 +755,7 @@ class CaseStrategySelector:
             )
         elif is_academic:
             milestone = "academic fellowship or advanced program"
+            strategy_id = "academic_fellowship_reappraisal"
             what_happening = (
                 "Entering a competitive academic fellowship or advanced program naturally triggers intense imposter feelings and fear of being found out. "
                 "These internal doubts often surge precisely when stepping into environments surrounded by accomplished peers."
@@ -752,8 +767,23 @@ class CaseStrategySelector:
             step_msg = (
                 "Ground yourself in observable facts: write down two concrete research questions or skills you brought to this program, reminding yourself that you were chosen on merit."
             )
+        elif is_relationship:
+            milestone = "relationship and shared home dynamic"
+            strategy_id = "relational_contribution_guilt_reappraisal"
+            what_happening = (
+                "You are carrying heavy guilt and feelings of inadequacy comparing your current study routine to your partner's intense work hours. "
+                "When one partner appears to shoulder visible external burdens, it is easy to internalize self-blame and feel like you are falling short."
+            )
+            core_msg = (
+                "A partnership is a shared journey, not an hour-by-hour transaction ledger. "
+                "Studying and building skills is valuable groundwork for the future, not 'being useless'; your contribution and worth are not defined solely by exhaustion or immediate earnings."
+            )
+            step_msg = (
+                "Acknowledge your honest appreciation for your partner, and remind yourself that dedicating focus to your studies is a legitimate and necessary investment in your shared future."
+            )
         else:
             milestone = "new role or milestone"
+            strategy_id = "imposter_promotion_reappraisal"
             what_happening = (
                 "Entering a higher-stakes role or milestone naturally activates internal alarm bells and self-doubt. "
                 "Feeling like an imposter often surges when taking on new responsibilities."
@@ -768,20 +798,20 @@ class CaseStrategySelector:
 
         return SelectedStrategy(
             modality="perspective_reappraisal",
-            strategy_id="creative_rejection_reappraisal" if is_creative else ("academic_fellowship_reappraisal" if is_academic else "imposter_promotion_reappraisal"),
+            strategy_id=strategy_id,
             name="Cognitive Decoupling & Evidence Testing",
             clinical_framework="Cognitive Therapy (Beck, 1979); Burns (1980)",
             rationale=(
-                f"The user describes intense feelings of being an imposter or fraud despite verified milestones ({milestone}). "
+                f"The user describes intense feelings of being inadequate or an imposter ({milestone}). "
                 "Testing internalized doubt against concrete, observable evidence helps restore perspective without invalidating the emotional difficulty."
             ),
             what_may_be_happening=what_happening,
-            confidence=0.84,
-            is_uncertain=True,
+            confidence=0.88,
+            is_uncertain=False,
             alternative_modalities=["validation"],
             contraindications=[
-                "do_not_dismiss_feelings_as_foolish",
-                "do_not_promise_unconditional_external_acclaim",
+                "do_not_dismiss_imposter_feelings_as_silly",
+                "do_not_guarantee_external_approval",
             ],
             reframe_needed=True,
             core_message=core_msg,
@@ -939,49 +969,173 @@ class CaseStrategySelector:
             ),
         )
 
+    def _select_cognitive_loop_break_growth(self, rep: CaseRepresentation) -> SelectedStrategy:
+        raw_lower = rep.raw_text.lower()
+        has_comparison = "compare" in raw_lower or "comparison" in raw_lower or "friends" in raw_lower
+        has_personalization = "personally" in raw_lower or "personal" in raw_lower
+        has_boundary = any(w in raw_lower for w in ["email", "weekend", "work", "boundary", "line", "holding that line"])
+
+        if has_comparison and has_personalization:
+            habit_desc = "comparing yourself to friends and taking things personally"
+            reframe_habit = "automatic habits like social comparison and personalization"
+        elif has_comparison:
+            habit_desc = "habitual social comparison"
+            reframe_habit = "automatic comparison loops"
+        elif has_personalization:
+            habit_desc = "taking things personally"
+            reframe_habit = "automatic personalization loops"
+        elif has_boundary:
+            habit_desc = "compulsive work-checking and holding your personal boundary"
+            reframe_habit = "chronic reactivity and choosing to protect your time and rest"
+        else:
+            habit_desc = "an unhelpful mental loop"
+            reframe_habit = "automatic cognitive loops"
+
+        what_happening = (
+            f"You have recognized a pattern of {habit_desc}, and through deliberate effort, you are actively breaking out of that loop and feeling genuine pride in your progress."
+        )
+        core_message = (
+            f"Recognizing {reframe_habit}—and actively choosing not to get hooked by them—is a profound mental breakthrough. "
+            "Growth does not mean an old thought or impulse will never cross your mind; it means you now notice the pattern, step back from the loop, and treat yourself with trust and pride, exactly as you are doing."
+        )
+
+        return SelectedStrategy(
+            modality="growth_affirmation",
+            strategy_id="cognitive_loop_break_growth_affirmation",
+            name="Cognitive Loop Breaking & Growth Affirmation",
+            clinical_framework="CBT (Cognitive Restructuring; Beck, 1979); Acceptance & Commitment Therapy (Defusion; Hayes, 1999); Self-Affirmation Theory (Steele, 1988)",
+            rationale=(
+                f"The user has developed acute self-awareness around {habit_desc}, "
+                "is deliberately interrupting the mental loop, and is feeling genuine, earned pride in that progress. "
+                "Affirms this cognitive breakthrough, normalizes that automatic triggers can still flicker without needing to be indulged, "
+                "and anchors self-trust."
+            ),
+            what_may_be_happening=what_happening,
+            confidence=0.94,
+            is_uncertain=False,
+            alternative_modalities=["validation"],
+            contraindications=[
+                "do_not_frame_growth_as_a_burden_or_crisis",
+                "do_not_invalidate_user_pride",
+                "do_not_impose_unsolicited_crisis_interventions",
+                "do_not_tell_user_they_are_facing_challenging_circumstances",
+            ],
+            reframe_needed=False,
+            core_message=core_message,
+            suggested_step=(
+                "Pause and let yourself fully savor this moment of pride—acknowledging your capacity to break old mental patterns is what solidifies lasting growth."
+            ),
+        )
+
+    def _select_social_comparison_differentiation(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="locus_of_agency",
+            strategy_id="social_comparison_differentiation",
+            name="Social Comparison Awareness & Values Differentiation",
+            clinical_framework="Acceptance & Commitment Therapy (ACT; Hayes, 1999); Social Comparison Theory (Festinger, 1954)",
+            rationale=(
+                "The user is noticing automatic habits of comparing personal progress against friends or peers. "
+                "Normalizes comparison urges as common social conditioning, decouples self-worth from others' timelines, "
+                "and returns focus to personal values and pacing."
+            ),
+            what_may_be_happening=(
+                "You are noticing automatic habits of measuring your own path and worth against your friends or peers, which is stirring up self-doubt."
+            ),
+            confidence=0.88,
+            is_uncertain=False,
+            alternative_modalities=["validation"],
+            contraindications=[
+                "do_not_dismiss_feelings_as_silly",
+                "do_not_demand_instant_detachment",
+            ],
+            reframe_needed=True,
+            core_message=(
+                "Comparing your internal journey to other people's visible milestones is a natural human habit, but it rarely tells the whole story. "
+                "Your worth and growth are rooted in your own path, not in how closely your timeline mirrors anyone else's."
+            ),
+            suggested_step=(
+                "Take one intentional breath, gently notice the comparison thought without judging yourself for having it, and choose one meaningful thing to focus on for yourself today."
+            ),
+        )
+
     def _select_general_validation(self, rep: CaseRepresentation) -> SelectedStrategy:
-        fact_names = [f.text for f in rep.stated_facts if f.text]
-        if not fact_names and rep.stated_thoughts:
-            fact_names = [t.statement for t in rep.stated_thoughts if t.statement]
-        if not fact_names and len(rep.raw_text.split()) > 3:
-            fact_names = [rep.raw_text.strip().rstrip(".?!")]
+        clean_facts = [
+            f.text for f in rep.stated_facts 
+            if f.text and f.text.lower() not in ("alot", "a lot", "lot", "bit", "stuff", "things", "loop", "this loop")
+        ]
+        if not clean_facts and rep.stated_thoughts:
+            clean_facts = [t.statement for t in rep.stated_thoughts if t.statement]
 
-        facts_str = ", ".join(dict.fromkeys(fact_names[:2])) if fact_names else ""
-        emotions_str = ", ".join(dict.fromkeys(e.emotion_word for e in rep.stated_emotions[:2])) if rep.stated_emotions else ""
+        facts_str = ", ".join(clean_facts[:2]) if clean_facts else ""
 
-        if facts_str and emotions_str:
-            what_happening = f"You are carrying meaningful tension around {facts_str}, which is bringing up feelings of {emotions_str}."
+        has_positive = any(e.valence == "positive" for e in rep.stated_emotions)
+        has_negative = any(e.valence == "negative" for e in rep.stated_emotions)
+
+        emotions_words = list(dict.fromkeys(e.emotion_word for e in rep.stated_emotions[:2]))
+        if len(emotions_words) == 2:
+            emotions_str = f"{emotions_words[0]} and {emotions_words[1]}"
+        elif emotions_words:
+            emotions_str = emotions_words[0]
+        else:
+            emotions_str = ""
+
+        raw_lower = rep.raw_text.lower()
+        is_future_weary = (
+            ("future" in raw_lower or rep.uncertainty.uncertainty_type == "future_outcome")
+            and any(w in raw_lower or w in emotions_words for w in ("demotivated", "unmotivated", "tired", "exhausted", "drained", "weary"))
+        )
+
+        clarification_qs = []
+        if is_future_weary:
+            what_happening = "You are experiencing mental fatigue and demotivation from trying to anticipate and carry the weight of the future."
             core_msg = (
-                f"Experiencing tension around {facts_str} is a natural and understandable reaction. "
+                "Feeling demotivated and exhausted when thinking about the future is a natural sign of cognitive overload. "
+                "You do not have to solve or predict the future today; your exhaustion is a signal that your mind needs space and rest, not that you are falling behind."
+            )
+            next_step = "When you think about the future right now, what part feels most exhausting to carry, or would it help more to set it aside completely for today?"
+            clarification_qs = [
+                "When you think about the future right now, is there a specific decision weighing on you, or is it an overall sense of exhaustion?"
+            ]
+        elif has_positive and not has_negative:
+            what_happening = f"You are noticing a meaningful positive moment and feeling {emotions_str}."
+            core_msg = (
+                f"Giving yourself credit and feeling {emotions_str} is deeply deserved. "
+                "Pausing to acknowledge positive shifts and celebrate your self-trust helps reinforce lasting progress."
+            )
+            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
+        elif facts_str and emotions_str:
+            what_happening = f"You are carrying meaningful tension around your situation, which is bringing up feelings of {emotions_str}."
+            core_msg = (
+                f"Experiencing tension and feeling {emotions_str} is a natural and understandable reaction. "
                 "You do not have to carry the entire weight all at once or solve everything today; giving yourself patience is valid and necessary."
             )
+            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
         elif facts_str:
-            what_happening = f"You are navigating significant demands and circumstances involving {facts_str}."
+            what_happening = "You are navigating significant demands and circumstances right now."
             core_msg = (
-                f"Facing challenging circumstances around {facts_str} is a real burden. "
+                "Facing challenging circumstances can be a real weight. "
                 "You do not have to have every answer sorted out immediately to deserve support and steady pacing."
             )
+            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
         elif emotions_str:
             what_happening = f"You are experiencing real emotional weight and feelings of {emotions_str} right now."
             core_msg = (
                 f"Feeling {emotions_str} is an understandable human experience when navigating uncertainty. "
                 "Treating yourself with patient self-compassion allows you to find steady ground."
             )
+            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
         else:
-            what_happening = f"You are carrying the emotional weight of what you described: \"{rep.raw_text.strip()}\"."
+            what_happening = "You are carrying the emotional weight of what you described."
             core_msg = (
                 "What you are experiencing in this situation is valid and real. "
                 "You do not have to carry the whole weight all at once; giving yourself patience and steady pacing is a necessary step."
             )
+            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
 
         if rep.user_goal:
             next_step = f"Take one small, manageable step toward {rep.user_goal} while honoring your natural daily pace."
-        elif facts_str:
-            next_step = f"Take a quiet pause, and when you feel ready, focus strictly on one small, manageable priority regarding {facts_str} while letting the rest wait."
-        elif rep.unknowns.missing_aspects and any("preferred support" in m for m in rep.unknowns.missing_aspects):
+        elif not is_future_weary and rep.unknowns.missing_aspects and any("preferred support" in m for m in rep.unknowns.missing_aspects):
             next_step = "What part of this experience feels most pressing or important for you to unpack right now?"
-        else:
-            next_step = "Take one quiet moment to pause and focus on what feels most grounding for you right now."
 
         return SelectedStrategy(
             modality="validation",
@@ -989,7 +1143,7 @@ class CaseStrategySelector:
             name="Grounded Validation & Presence",
             clinical_framework="Person-Centered Counseling; CFT",
             rationale=(
-                f"Acknowledge the user's specific context ({facts_str or 'personal reflection'}) without imposing premature reframing. "
+                f"Acknowledge the user's situation ({facts_str or 'personal reflection'}) without imposing premature reframing. "
                 "Provides empathetic validation and encourages taking things one manageable moment at a time."
             ),
             what_may_be_happening=what_happening,
@@ -1002,4 +1156,5 @@ class CaseStrategySelector:
             reframe_needed=False,
             core_message=core_msg,
             suggested_step=next_step,
+            clarification_questions=clarification_qs,
         )

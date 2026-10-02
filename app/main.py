@@ -152,6 +152,8 @@ def process():
     # 7. Grounded Narrative & Observable Visual Staging (Stage 1-4)
     story = None
     use_grounded = True
+    grounded_error = None
+    grounded_traceback = None
     try:
         from app.psychology.case_representation import extract_case_representation
         from app.psychology.case_strategy_selector import CaseStrategySelector
@@ -217,8 +219,10 @@ def process():
         }
     except Exception as exc:
         import traceback
-        sys.stderr.write(f"[PIPELINE FALLBACK] Grounded pipeline failed, using legacy fallback: {exc}\n")
-        traceback.print_exc(file=sys.stderr)
+        grounded_error = str(exc)
+        grounded_traceback = traceback.format_exc()
+        app.logger.error(f"[PIPELINE ERROR] Grounded pipeline failed: {exc}\n{grounded_traceback}")
+        sys.stderr.write(f"[PIPELINE ERROR] Grounded pipeline failed: {exc}\n{grounded_traceback}\n")
         use_grounded = False
 
     if not use_grounded or story is None:
@@ -270,7 +274,7 @@ def process():
         "summary": case_frame.summary,
         "distortions": case_frame.distortions,
         "core_emotion": case_frame.core_emotion,
-        "pattern": case_frame.pattern,
+        "pattern": case_frame.pattern if use_grounded else f"Fallback Mode: {case_frame.pattern}",
         "is_external_threat": case_frame.is_external_threat,
         "reasoning": case_frame.reasoning,
         "technique": {"name": primary_technique["name"], "citation": primary_technique["citation"]},
@@ -278,7 +282,9 @@ def process():
         "story": story,
         "audio_url": f"/media/{os.path.basename(audio_path)}" if audio_path else None,
         "image_status_url": f"/image_status/{session_id}",
-        "pipeline": "grounded_pipeline_v1" if use_grounded else "legacy_pipeline",
+        "pipeline": "grounded_pipeline_v1" if use_grounded else "legacy_pipeline_fallback",
+        "fallback_occurred": not use_grounded,
+        "grounded_error": grounded_error,
     }
     return jsonify(response)
 

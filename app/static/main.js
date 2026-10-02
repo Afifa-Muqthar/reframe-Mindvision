@@ -36,22 +36,25 @@ form.addEventListener("submit", async (e) => {
     // Populate Psychological Reasoning Layer
     const reasoning = data.reasoning || {};
     document.getElementById("reasoning-happening").textContent =
-      reasoning.what_may_be_happening || data.pattern || "Situation reflection";
+      reasoning.what_may_be_happening || (data.pattern || "");
     document.getElementById("reasoning-control").textContent =
-      reasoning.what_you_can_control || "Focus on personal boundaries, support, and agency.";
+      reasoning.what_you_can_control || (data.fallback_occurred ? "Unable to determine controllable factors." : "");
     const uncontrolEl = document.getElementById("reasoning-uncontrollable");
     if (uncontrolEl) {
       uncontrolEl.textContent =
-        reasoning.what_is_not_controllable || "Past events and external actions of others.";
+        reasoning.what_is_not_controllable || (data.fallback_occurred ? "Unable to determine uncontrollable factors." : "");
     }
     document.getElementById("reasoning-reframe").textContent =
-      `“${reasoning.reframe || ""}”`;
+      reasoning.reframe ? `“${reasoning.reframe}”` : "";
     document.getElementById("reasoning-action").textContent =
-      reasoning.next_step || "Take one manageable constructive step today.";
+      reasoning.next_step || "";
 
-    // Badge for external threat vs internal pattern
+    // Badge for external threat vs internal pattern or fallback
     const badge = document.getElementById("threat-badge");
-    if (data.is_external_threat) {
+    if (data.fallback_occurred) {
+      badge.textContent = "Pipeline Fallback";
+      badge.className = "badge badge-threat";
+    } else if (data.is_external_threat) {
       badge.textContent = "Trauma-Informed Safety Focus";
       badge.className = "badge badge-threat";
     } else {

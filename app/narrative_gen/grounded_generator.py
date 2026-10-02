@@ -57,6 +57,8 @@ class GroundedNarrativeGenerator:
             scenes = self._build_agency_scenes(rep, strategy)
         elif modality == "perspective_reappraisal":
             scenes = self._build_reappraisal_scenes(rep, strategy)
+        elif modality == "growth_affirmation":
+            scenes = self._build_growth_affirmation_scenes(rep, strategy)
         else:
             scenes = self._build_validation_scenes(rep, strategy)
 
@@ -112,22 +114,22 @@ class GroundedNarrativeGenerator:
             desc = "a dedicated academic researcher and scholar"
             appearance = "thoughtful features, neat hair, reading glasses"
             clothing = "comfortable dark knit sweater and casual trousers"
-        elif any(w in raw_lower for w in ["daughter", "sister", "woman", "mother"]):
+        elif any(re.search(rf"\b{re.escape(w)}\b", raw_lower) for w in ["daughter", "sister", "woman", "mother"]):
             anchor = "young woman with neat dark hair tied back in comfortable knit sweater"
             desc = "a thoughtful woman navigating complex family and personal dynamics"
             appearance = "natural, expressive features with dark hair tied back"
             clothing = "comfortable knit sweater and everyday pants"
-        elif any(w in raw_lower for w in ["son", "brother", "man", "father"]):
+        elif any(re.search(rf"\b{re.escape(w)}\b", raw_lower) for w in ["son", "brother", "man", "father"]):
             anchor = "young man with short dark hair in casual crewneck sweater"
             desc = "a thoughtful man reflecting on personal challenges"
             appearance = "grounded, natural features with short dark hair"
             clothing = "casual crewneck sweater and everyday pants"
-        elif any(w in raw_lower for w in ["canvas", "painting", "art", "manuscript", "writer", "studio"]):
+        elif any(re.search(rf"\b{re.escape(w)}\b", raw_lower) for w in ["canvas", "painting", "art", "manuscript", "writer", "studio"]):
             anchor = "creative artist with untamed hair in casual studio work clothes"
             desc = "a reflective artist and writer dedicated to creative craft"
             appearance = "observant, expressive eyes and thoughtful posture"
             clothing = "comfortable artist work shirt with rolled-up sleeves"
-        elif any(w in raw_lower for w in ["migraine", "headache", "bed", "flare-up", "autoimmune", "fatigue"]):
+        elif any(re.search(rf"\b{re.escape(w)}\b", raw_lower) for w in ["migraine", "headache", "bed", "flare-up", "autoimmune", "fatigue"]):
             anchor = "person resting in comfortable soft lounge clothing with gentle posture"
             desc = "an individual taking restorative care for a physical health condition"
             appearance = "gentle, resting facial expression and relaxed posture"
@@ -387,6 +389,10 @@ class GroundedNarrativeGenerator:
             d1 = "I miss someone from my past, but I know I don't want to resume the relationship."
             cap1 = "Missing someone and holding a healthy boundary can honestly coexist."
             narr1 = "You are honoring your decision to stay apart while acknowledging the natural grief of missing a past bond."
+        elif "future" in rep.raw_text.lower() and any(e.emotion_word in ("demotivated", "unmotivated", "tired", "exhausted", "weary") for e in rep.stated_emotions):
+            d1 = "I find myself constantly trying to anticipate what's coming, and it feels exhausting."
+            cap1 = "Constantly carrying the unknown future leads naturally to cognitive depletion."
+            narr1 = "Trying to mentally solve and prepare for an uncertain future is deeply draining."
         else:
             d1 = f"I am dealing with a deeply challenging situation: {facts[0] if facts else 'an intense burden'}."
             cap1 = "Acknowledge the weight of the reality before rushing to solutions."
@@ -470,6 +476,14 @@ class GroundedNarrativeGenerator:
             narr3 = (
                 f"{step_text} "
                 "Holding firm to your personal boundaries while validating your feelings is an act of deep self-respect."
+            )
+        elif "future" in rep.raw_text.lower() and any(e.emotion_word in ("demotivated", "unmotivated", "tired", "exhausted", "weary") for e in rep.stated_emotions):
+            title_3 = "3. PRESENT GROUNDING & REST"
+            d3 = "I can step back from trying to solve tomorrow today, and just give myself permission to rest right now."
+            cap3 = "Setting down tomorrow's weight protects the energy you need for today."
+            narr3 = (
+                f"{step_text} "
+                "Giving yourself permission to pause and step out of the future honors your natural need for rest and clarity."
             )
         else:
             title_3 = "3. COMPASSIONATE NEXT STEP"
@@ -905,6 +919,97 @@ class GroundedNarrativeGenerator:
 
         return scenes
 
+    def _build_growth_affirmation_scenes(self, rep: CaseRepresentation, strategy: SelectedStrategy) -> List[Dict[str, Any]]:
+        scenes = []
+        raw_lower = rep.raw_text.lower()
+        has_comparison = "compare" in raw_lower or "comparison" in raw_lower or "friends" in raw_lower
+        has_personalization = "personally" in raw_lower
+        has_boundary = any(w in raw_lower for w in ["email", "weekend", "work", "boundary", "line", "holding that line"])
+
+        if has_comparison and has_personalization:
+            dialogue_1 = "I catch myself comparing with friends and taking things personally—and I pause."
+            narrative_1 = (
+                "You noticed the familiar pull of comparing yourself to friends and taking things personally. "
+                "Instead of automatically falling into the spiral, you caught yourself in the loop and paused."
+            )
+            dialogue_2 = "Stepping out of this loop is already helping me immensely."
+            narrative_2 = (
+                "By consciously choosing not to spiral into comparison or personalization, you are experiencing genuine relief. "
+                "You are discovering that your self-worth is not dictated by where others are or what they think."
+            )
+        elif has_boundary:
+            dialogue_1 = "I felt the urge to react to work notifications—and I chose to hold the line."
+            narrative_1 = (
+                "You noticed the familiar pull to sacrifice your weekend rest and react on autopilot. "
+                "Instead of giving in to the urgency, you caught the impulse and protected your boundary."
+            )
+            dialogue_2 = "Holding that line is giving me genuine breathing room and relief."
+            narrative_2 = (
+                "By consciously prioritizing your rest over constant reactivity, you are experiencing real relief. "
+                "You are discovering that taking care of yourself is necessary, not selfish."
+            )
+        else:
+            dialogue_1 = "I catch the old automatic thought pattern starting—and I choose to pause."
+            narrative_1 = (
+                "You noticed the familiar pull of an old mental loop. "
+                "Instead of automatically falling into the pattern, you caught yourself and paused."
+            )
+            dialogue_2 = "Stepping out of this loop is already helping me find steady ground."
+            narrative_2 = (
+                "By consciously choosing not to spiral into old patterns, you are experiencing genuine relief. "
+                "You are discovering that your thoughts do not have to dictate your actions."
+            )
+
+        # Scene 1: Catching the comparison / personalization / boundary loop
+        scenes.append({
+            "stage": "noticing_pattern",
+            "title": "1. NOTICING THE LOOP",
+            "bubble_type": "thought",
+            "dialogue": dialogue_1,
+            "caption": "The most powerful step in breaking any habit is catching the pattern as it happens.",
+            "narrative": narrative_1,
+            "detail_traceability": {
+                "dialogue": {"origin": "user_stated", "source": "stated habit awareness"},
+                "caption": {"origin": "inferred_hypothesis", "source": "cognitive defusion principle"},
+                "narrative": {"origin": "user_stated", "source": "stated awareness of loop"},
+            },
+        })
+
+        # Scene 2: Conscious choice to step out and feeling the relief
+        scenes.append({
+            "stage": "conscious_choice",
+            "title": "2. STEPPING OUT OF THE LOOP",
+            "bubble_type": "thought",
+            "dialogue": dialogue_2,
+            "caption": "Growth is not the absence of automatic thoughts; it is choosing not to follow them.",
+            "narrative": narrative_2,
+            "detail_traceability": {
+                "dialogue": {"origin": "user_stated", "source": "stated relief and effort"},
+                "caption": {"origin": "inferred_hypothesis", "source": "ACT committed action principle"},
+                "narrative": {"origin": "inferred_hypothesis", "source": strategy.core_message},
+            },
+        })
+
+        # Scene 3: Savoring self-pride and anchoring progress
+        scenes.append({
+            "stage": "savoring_progress",
+            "title": "3. ANCHORING SELF-TRUST",
+            "bubble_type": "thought",
+            "dialogue": "I am genuinely proud of myself for doing this work and breaking free.",
+            "caption": "Pausing to celebrate your progress is what turns a single breakthrough into lasting resilience.",
+            "narrative": (
+                f"You have earned this feeling of pride. {strategy.suggested_step} "
+                "Recognizing your own power to shift mental patterns gives you solid ground to stand on."
+            ),
+            "detail_traceability": {
+                "dialogue": {"origin": "user_stated", "source": "proud of myself"},
+                "caption": {"origin": "inferred_hypothesis", "source": "self-affirmation and savoring"},
+                "narrative": {"origin": "inferred_hypothesis", "source": strategy.suggested_step},
+            },
+        })
+
+        return scenes
+
     # -------------------------------------------------------------------------
     # INTERNAL HELPERS & SAFETY GUARDRAILS
     # -------------------------------------------------------------------------
@@ -939,6 +1044,12 @@ class GroundedNarrativeGenerator:
             if "do_not_offer_toxic_optimism_about_climate_reality" in contra:
                 assert not any(phrase in combined_text for phrase in ["everything will be fine with the climate", "technology will fix everything", "don't worry about the planet"]), \
                     "Violated contraindication: Toxic climate optimism"
+            if "do_not_frame_growth_as_a_burden_or_crisis" in contra:
+                assert not any(phrase in combined_text for phrase in ["real burden", "facing challenging circumstances", "heavy tension"]), \
+                    "Violated contraindication: Framing growth as a burden or crisis"
+            if "do_not_invalidate_user_pride" in contra:
+                assert not any(phrase in combined_text for phrase in ["should not be proud", "too early to celebrate"]), \
+                    "Violated contraindication: Invalidation of user pride"
 
     def _derive_context_name(self, rep: CaseRepresentation, strategy: SelectedStrategy) -> str:
         if rep.interacting_concerns:

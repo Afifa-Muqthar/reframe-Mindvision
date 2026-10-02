@@ -248,6 +248,13 @@ _EMOTION_LEXICON = {
     "exhausted": ("negative", "exhaustion"),
     "drained": ("negative", "exhaustion"),
     "depleted": ("negative", "exhaustion"),
+    "tired": ("negative", "exhaustion"),
+    "weary": ("negative", "exhaustion"),
+    "demotivated": ("negative", "demotivation"),
+    "unmotivated": ("negative", "demotivation"),
+    "demotivation": ("negative", "demotivation"),
+    "burned out": ("negative", "burnout"),
+    "burnout": ("negative", "burnout"),
     "lonely": ("negative", "loneliness"),
     "isolated": ("negative", "isolation"),
     "ashamed": ("negative", "shame"),
@@ -294,8 +301,31 @@ _EMOTION_LEXICON = {
     "resentful": ("negative", "resentment"),
     "burnout": ("negative", "burnout"),
     "froze": ("negative", "freeze"),
-    "frozen": ("negative", "freeze"),
     "disposable": ("negative", "worthlessness"),
+    "useless": ("negative", "worthlessness"),
+    "freaking": ("negative", "panic/anxiety"),
+    "freaked": ("negative", "panic/anxiety"),
+    "proud": ("positive", "self_pride/growth"),
+    "pride": ("positive", "self_pride/growth"),
+    "accomplished": ("positive", "achievement/confidence"),
+    "relieved": ("positive", "relief"),
+    "relief": ("positive", "relief"),
+    "grateful": ("positive", "gratitude"),
+    "gratitude": ("positive", "gratitude"),
+    "hopeful": ("positive", "hope"),
+    "hope": ("positive", "hope"),
+}
+
+
+_INVALID_FACT_TOKENS = {
+    "alot", "a lot", "lot", "lots", "bit", "a bit", "stuff", "things", "thing",
+    "everything", "anything", "nothing", "something", "someone", "anyone", "everyone",
+    "loop", "loops", "this loop", "that loop", "the loop",
+    "way", "ways", "day", "days", "time", "times", "part", "parts",
+    "kind", "sort", "type", "much", "many", "more", "less", "mine", "yours",
+    "it", "this", "that", "these", "those", "best", "my best", "all",
+    "ton", "a ton", "tons", "tons of", "kind of", "sort of", "idea", "no idea",
+    "line", "that line", "the line",
 }
 
 
@@ -367,8 +397,8 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
     for chunk in doc.noun_chunks:
         c_text = chunk.text.strip()
         c_low = c_text.lower()
-        # Skip pure pronouns
-        if c_low in ("i", "me", "my", "myself", "it", "we", "us", "you", "they", "them", "he", "she", "him", "her", "this", "that"):
+        # Skip pure pronouns and non-entity pseudo-nouns
+        if c_low in ("i", "me", "my", "myself", "it", "we", "us", "you", "they", "them", "he", "she", "him", "her", "this", "that") or c_low in _INVALID_FACT_TOKENS:
             continue
         if any(f.start_char == chunk.start_char for f in facts):
             continue
@@ -385,7 +415,13 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
         elif any(w in c_low for w in ["grade", "degree", "lead", "promotion", "milestone"]):
             facts.append(StatedFact(text=c_text, category="milestone", source_span=c_text, start_char=chunk.start_char, end_char=chunk.end_char))
         else:
-            content_tokens = [tok for tok in chunk if not tok.is_stop and not tok.is_punct and len(tok.text) > 1]
+            if c_low in _INVALID_FACT_TOKENS or chunk.root.lemma_.lower() in _INVALID_FACT_TOKENS:
+                continue
+            content_tokens = [
+                tok for tok in chunk 
+                if not tok.is_stop and not tok.is_punct and len(tok.text) > 1 
+                and tok.lemma_.lower() not in _INVALID_FACT_TOKENS and tok.text.lower() not in _INVALID_FACT_TOKENS
+            ]
             if content_tokens:
                 cat = "actor" if any(tok.ent_type_ == "PERSON" for tok in chunk) else "domain"
                 facts.append(StatedFact(
@@ -447,13 +483,22 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
                 end_char=m.end(),
             ))
 
-    # Deduplicate by start/end char
-    seen = set()
+    # Deduplicate facts: avoid redundant duplicates and overlapping sub-spans of the same root
     deduped = []
-    for f in facts:
-        key = (f.start_char, f.end_char)
-        if key not in seen:
-            seen.add(key)
+    for f in sorted(facts, key=lambda x: (x.start_char, -(x.end_char - x.start_char))):
+        if f.text.lower() in _INVALID_FACT_TOKENS:
+            continue
+        is_dupe = False
+        for ex in deduped:
+            if ex.category == f.category:
+                if ex.text.lower() == f.text.lower():
+                    is_dupe = True
+                    break
+                # If one is a substring of the other and they overlap in span (e.g. 'friends' and 'my friends')
+                if (ex.start_char <= f.start_char and f.end_char <= ex.end_char) or (f.start_char <= ex.start_char and ex.end_char <= f.end_char):
+                    is_dupe = True
+                    break
+        if not is_dupe:
             deduped.append(f)
     return deduped
 
@@ -586,6 +631,17 @@ def _extract_stated_thoughts(doc, raw_text: str) -> List[StatedThoughtOrClaim]:
         r"\bi\s+feel\s+disposable\b",
         r"\bnever\s+find\s+comparable\s+work\b",
         r"\b(committee\s+)?made\s+a\s+clerical\s+error\b",
+        r"\bcompar(e|ing)\s+([a-z]+\s+)?(with|to)\s+(my\s+)?(friends|peers|others)\b",
+        r"\bcompar(e|ing)\s+myself\b",
+        r"\btak(e|ing)\s+(everything|things)\s+personally\b",
+        r"\bgetting\s+out\s+of\s+(this\s+)?loop\b",
+        r"\btrying\s+my\s+best\s+to\s+be\s+over\s+it\b",
+        r"\bhelping\s+me\s+(quite\s+)?immensely\b",
+        r"\bproud\s+of\s+myself\b",
+        r"\b(i\s+)?have\s+no\s+idea\s+what\s+i'?m\s+doing\b",
+        r"\b(feeling|being)\s+(just\s+)?useless\b",
+        r"\bholding\s+(that|the)\s+line\b",
+        r"\bfreaking\s+out\b",
     ]
 
     for pat in thought_patterns:
@@ -642,10 +698,12 @@ def _infer_appraisals(
 
     # 1. Social Comparison & Peer Pacing
     if re.search(r"\b(friends|peers|colleagues|coworkers|everyone(\s+else)?)\b.*\b(placed|succeeding|doing better|invite|dinner|pivoting|articulate|accomplished|ahead)\b", lowered) or \
-       re.search(r"\bkeep\s+up\s+with\s+(my\s+)?peers\b", lowered):
+       re.search(r"\bkeep\s+up\s+with\s+(my\s+)?peers\b", lowered) or \
+       re.search(r"\bcompar(e|ing)\s+([a-z]+\s+)?(with|to)\s+(my\s+)?(friends|peers|others|colleagues|coworkers)\b", lowered) or \
+       re.search(r"\bcompar(e|ing)\s+myself\b", lowered):
         evidence = [f.source_span for f in facts if f.category in ("actor", "event") and any(w in f.source_span.lower() for w in ["friends", "peers", "placed", "invite", "coworkers", "everyone"])]
         if not evidence:
-            m = re.search(r"\b(friends|peers|colleagues|coworkers|everyone(\s+else)?)[^.?!]*\b", lowered)
+            m = re.search(r"\bcompar[a-z]*[^.?!]*\b", lowered)
             evidence = [raw_text[m.start():m.end()].strip()] if m else ["Mention of peer pacing or social circle"]
         appraisals.append(InferredAppraisal(
             dimension="social_comparison",
@@ -689,7 +747,7 @@ def _infer_appraisals(
         concerns.append("family_boundary_pressure")
 
     # 4. Perceived Self-Deficit
-    if re.search(r"\b(haven'?t\s+done\s+enough|can'?t\s+be\s+productive|no\s+talent|awful\s+person|fraud|what'?s\s+wrong\s+with\s+me|clerical\s+error|mistake\s+admitting|don'?t\s+belong)\b", lowered):
+    if re.search(r"\b(haven'?t\s+done\s+enough|can'?t\s+be\s+productive|no\s+talent|awful\s+person|fraud|what'?s\s+wrong\s+with\s+me|clerical\s+error|mistake\s+admitting|don'?t\s+belong|no\s+idea\s+what\s+(i'm|i\s+am)\s+doing|feeling\s+useless|being\s+useless)\b", lowered):
         evidence = [t.statement for t in thoughts if any(w in t.statement.lower() for w in ["enough", "productive", "talent", "awful", "fraud", "wrong", "clerical", "error"])] or ["Perceived personal inadequacy or imposter fear"]
         appraisals.append(InferredAppraisal(
             dimension="perceived_deficit",
@@ -859,6 +917,31 @@ def _infer_appraisals(
         ))
         concerns.append("creative_drought")
 
+    # 16. Personalization Tendency
+    if re.search(r"\btak(e|ing)\s+(everything|things)\s+personally\b", lowered):
+        evidence = ["taking everything personally"]
+        appraisals.append(InferredAppraisal(
+            dimension="personalization_tendency",
+            interpretation="Tendency to interpret external events, peer dynamics, or ambient interactions as direct personal reflections or judgments.",
+            confidence=0.88,
+            evidence_spans=evidence,
+            reasoning="User explicitly notes a tendency to take things personally.",
+        ))
+        concerns.append("personalization_pattern")
+
+    # 17. Cognitive Loop Break & Growth Affirmation
+    if re.search(r"\b(proud\s+of\s+myself|proud\s+of\s+my|proud\s+of\s+holding|getting\s+out\s+of\s+(this\s+)?loop|broken\s+(this\s+)?loop|breaking\s+out\s+of(\s+this)?\s+loop|breaking\s+the\s+loop|made\s+progress|making\s+progress|helping\s+me\s+quite\s+immensely|holding\s+(that|the)\s+line)\b", lowered) or \
+       (re.search(r"\b(proud|relieved)\b", lowered) and re.search(r"\b(weekend|boundary|line|loop|progress|habit)\b", lowered)):
+        evidence = [t.statement for t in thoughts if any(w in t.statement.lower() for w in ["proud", "loop", "helping", "over it"])] or ["Proud of interrupting comparison and personalization loop"]
+        appraisals.append(InferredAppraisal(
+            dimension="cognitive_loop_break_growth",
+            interpretation="User is actively and successfully breaking out of unhelpful cognitive habits (social comparison, personalization) and experiencing self-reinforcing pride and momentum.",
+            confidence=0.92,
+            evidence_spans=evidence,
+            reasoning="User describes deliberate effort yielding immense help, breaking a mental loop, and feeling proud of their progress.",
+        ))
+        concerns.append("growth_and_loop_breaking")
+
     return appraisals, concerns
 
 
@@ -920,7 +1003,12 @@ def _infer_uncertainty(raw_text: str, appraisals: List[InferredAppraisal]) -> Un
     return UncertaintyProfile(has_uncertainty=False)
 
 
-def _infer_controllability(facts: List[StatedFact], appraisals: List[InferredAppraisal]) -> ControllabilityAnalysis:
+def _infer_controllability(
+    facts: List[StatedFact],
+    appraisals: List[InferredAppraisal],
+    uncertainty: Optional[UncertaintyProfile] = None,
+    raw_text: str = "",
+) -> ControllabilityAnalysis:
     dims = {a.dimension for a in appraisals}
     controllable = []
     uncontrollable = []
@@ -994,19 +1082,34 @@ def _infer_controllability(facts: List[StatedFact], appraisals: List[InferredApp
         controllable.append("Honoring your decision not to resume the relationship, and giving yourself permission to mourn the loss without having to reverse your boundary")
         uncontrollable.append("Experiencing spontaneous waves of sadness, nostalgia, or missing the connection")
 
-    # Dynamic fallback: context-grounded when facts exist, gentle pause when sparse
+    if "cognitive_loop_break_growth" in dims:
+        controllable.append("Continuing to notice when comparison or personalization urges arise, pausing to defuse from them, and honoring your real progress")
+        uncontrollable.append("Spontaneous, automatic comparison thoughts that pop up uninvited, and where other people currently are in their separate journeys")
+    elif "social_comparison" in dims:
+        controllable.append("Refocusing on your own personal values and pacing, and noticing when comparison triggers arise without judging yourself")
+        uncontrollable.append("Where other people currently are in their journeys, and external milestones achieved by peers")
+    elif "personalization_tendency" in dims:
+        controllable.append("Pausing before assuming personal responsibility for external events, and checking alternative explanations")
+        uncontrollable.append("The ambiguous behaviors, moods, or reactions of other people")
+
+    # Dynamic fallback: dignified, human, non-templated reflection grounded in temporal orientation
     if not controllable and not uncontrollable:
-        if facts:
-            context_topics = ", ".join(dict.fromkeys([f.text for f in facts[:2] if f.text]))
-            if context_topics:
-                controllable.append(f"Choosing how you allocate your energy today, honoring your immediate boundaries, and taking one steady step regarding {context_topics}")
-                uncontrollable.append(f"Past occurrences around {context_topics} that have already happened, and the unpredictable choices or reactions of other people")
-            else:
-                controllable.append("Choosing how you allocate your energy today, honoring your immediate boundaries, and taking one steady, manageable step at a time")
-                uncontrollable.append("Past occurrences that have already happened, and the unpredictable choices or reactions of other people")
+        lowered = (raw_text or "").lower()
+        is_future = (
+            (uncertainty and uncertainty.uncertainty_type == "future_outcome")
+            or bool(re.search(r"\b(future|tomorrow|upcoming|later|ahead|down the road)\b", lowered))
+        )
+        is_past = bool(re.search(r"\b(past|yesterday|earlier|happened|regret|undo)\b", lowered))
+
+        if is_future:
+            controllable.append("Choosing how you allocate your energy and mental bandwidth today, pausing when exhausted, and focusing on the immediate present")
+            uncontrollable.append("How future events will eventually unfold, distant outcomes that cannot be decided right now, and the timeline ahead")
+        elif is_past:
+            controllable.append("Deciding how you treat yourself today and choosing constructive ways to move forward")
+            uncontrollable.append("Past occurrences that have already unfolded and cannot be rewritten")
         else:
-            controllable.append("Taking a slow pause right now, catching your breath, and choosing whether you wish to explore this further or just rest")
-            uncontrollable.append("Needing to immediately figure out every feeling, next step, or answer right this second")
+            controllable.append("Choosing how you allocate your energy today, honoring your immediate boundaries, and taking one steady, manageable step at a time")
+            uncontrollable.append("Unpredictable external circumstances, distant outcomes, and the independent choices or reactions of other people")
 
     return ControllabilityAnalysis(
         potentially_controllable=controllable,
@@ -1096,6 +1199,13 @@ def _infer_support_needs(
         possible_needs.append("somatic_grounding_and_micro_step")
         contraindications.append("do_not_overwhelm_with_multi_step_planning")
 
+    if "cognitive_loop_break_growth" in dims:
+        possible_needs.append("growth_reinforcement")
+        possible_needs.append("savoring_and_self_compassion")
+        contraindications.append("do_not_frame_growth_as_a_burden_or_crisis")
+        contraindications.append("do_not_invalidate_user_pride")
+        contraindications.append("do_not_impose_unsolicited_crisis_interventions")
+
     return SupportNeedsHypothesis(
         possible_needs=possible_needs or ["open_reflective_exploration"],
         contraindications=contraindications,
@@ -1148,8 +1258,8 @@ def _identify_unknowns(
         missing.append("Whether the user wishes to reach out, find peace with moving on, or simply process the grief of missing them")
         missing.append("How much time has passed since the connection was active")
 
-    if not facts:
-        missing.append("Concrete situational trigger or context")
+    if not facts or not any(f.category in ("actor", "milestone", "condition", "obligation", "event", "activity") for f in facts):
+        missing.append("Concrete situational trigger or context (unstated)")
 
     missing.append("User's preferred support modality (listening vs. planning vs. perspective)")
 
@@ -1260,6 +1370,11 @@ def _assess_ambiguity(
     """
     dims = {a.dimension for a in appraisals}
     words = raw_text.split()
+    concrete_facts = [
+        f for f in facts 
+        if f.category in ("actor", "milestone", "condition", "obligation", "event", "activity")
+        and f.text.lower() not in ("future", "the future")
+    ]
 
     # Truly sparse: very short input with no facts, no behaviors, and no active appraisals
     if len(words) <= 4 and not facts and not behaviors and not dims:
@@ -1274,11 +1389,11 @@ def _assess_ambiguity(
         "relational_longing_with_boundary", "resource_strain_uncertainty", "creative_block"
     )):
         return "sufficient"
-    if len(facts) >= 2 or len(behaviors) >= 1 or (len(facts) >= 1 and len(emotions) >= 1):
+    if len(concrete_facts) >= 2 or len(behaviors) >= 1 or (len(concrete_facts) >= 1 and len(emotions) >= 1):
         return "sufficient"
-    if len(words) > 10 and (len(facts) >= 1 or len(thoughts) >= 1):
+    if len(words) > 10 and (len(concrete_facts) >= 1 or len(thoughts) >= 1):
         return "sufficient"
-    if len(emotions) >= 1 and (len(thoughts) >= 1 or len(words) > 5):
+    if len(emotions) >= 1:
         return "partial"
     return "sparse_insufficient"
 
@@ -1343,7 +1458,7 @@ def extract_case_representation(
     uncertainty = _infer_uncertainty(cleaned, inferred_appraisals)
 
     # 5. Controllability analysis
-    controllability = _infer_controllability(stated_facts, inferred_appraisals)
+    controllability = _infer_controllability(stated_facts, inferred_appraisals, uncertainty, cleaned)
 
     # 6. Support needs hypotheses
     support_needs = _infer_support_needs(inferred_appraisals, uncertainty)
