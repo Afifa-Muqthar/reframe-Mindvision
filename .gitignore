@@ -13,3 +13,4 @@ huggingface_cache/
 .cache/
 instance/
 *.log
+scratch/

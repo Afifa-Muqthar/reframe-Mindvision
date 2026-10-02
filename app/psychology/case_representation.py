@@ -194,6 +194,7 @@ _MILESTONE_KEYWORDS = {
     "meeting": "event", "assignments": "obligation", "manuscript": "creative_work",
     "project": "obligation", "dinner party": "event", "flare-up": "condition",
     "autoimmune": "condition", "laundry": "activity", "fridge": "condition",
+    "priority": "stated_concern", "priorities": "stated_concern",
 }
 
 _EMOTION_LEXICON = {
@@ -271,6 +272,8 @@ def _extract_stated_facts(doc, raw_text: str) -> List[StatedFact]:
         (r"\bcan barely get out of bed\b", "physical_state", "unable to get out of bed"),
         (r"\b(drained\s+all\s+my\s+energy|completely\s+drained|exhausted)\b", "physical_state", "physical exhaustion"),
         (r"\b(paralyzed|unable\s+to\s+move)\b", "behavioral_state", "behavioral immobility"),
+        (r"\bpriorities\s+(are\s+)?shifting(\s+every\s+now\s+and\s+then)?\b", "stated_concern", "shifting priorities"),
+        (r"\bconfused\s+about\s+what\s+to\s+do\b", "stated_concern", "confusion about direction"),
     ]
     for pattern, cat, label in event_patterns:
         m = re.search(pattern, lowered)
@@ -357,6 +360,8 @@ def _extract_stated_thoughts(doc, raw_text: str) -> List[StatedThoughtOrClaim]:
         r"\bwasted\s+years\s+of\s+my\s+life\b",
         r"\bwondering\s+what'?s\s+wrong\s+with\s+me\b",
         r"\bunable\s+to\s+move\b",
+        r"\b(i'?m\s+)?(really\s+)?confused\s+about\s+what\s+to\s+do\b",
+        r"\b(my\s+)?priorities\s+are\s+shifting(\s+every\s+now\s+and\s+then)?\b",
     ]
 
     for pat in thought_patterns:
@@ -481,6 +486,18 @@ def _infer_appraisals(
         ))
         concerns.append("executive_freeze")
 
+    # 8. Shifting Priorities / Direction Uncertainty
+    if re.search(r"\b(priorities\s+(are\s+)?shifting|shifting\s+priorities|priorities\s+keep\s+shifting|shifting\s+every\s+now\s+and\s+then)\b", lowered) or ("priorit" in lowered and ("shift" in lowered or "confus" in lowered)):
+        evidence = [f.source_span for f in facts if "priorit" in f.source_span.lower()] or ["priorities are shifting"]
+        appraisals.append(InferredAppraisal(
+            dimension="priority_reorientation",
+            interpretation="Experiencing fluctuating priorities and uncertainty regarding current focus or next direction.",
+            confidence=0.88,
+            evidence_spans=evidence,
+            reasoning="User explicitly articulates shifting priorities and confusion about what direction to take.",
+        ))
+        concerns.append("shifting_priorities_uncertainty")
+
     return appraisals, concerns
 
 
@@ -506,6 +523,16 @@ def _infer_uncertainty(raw_text: str, appraisals: List[InferredAppraisal]) -> Un
             is_inherently_unpredictable=True,
             preservation_required=True,
             evidence_spans=["hopeless about the future", "planet is burning"],
+        )
+
+    # Shifting priorities / Direction uncertainty
+    if "priority_reorientation" in dims or re.search(r"\b(priorities\s+(are\s+)?shifting|shifting\s+priorities|priorities\s+keep\s+shifting)\b", lowered) or ("priorit" in lowered and ("shift" in lowered or "confus" in lowered)):
+        return UncertaintyProfile(
+            has_uncertainty=True,
+            uncertainty_type="priority_uncertainty",
+            is_inherently_unpredictable=False,
+            preservation_required=True,
+            evidence_spans=["confused about what to do", "priorities are shifting"],
         )
 
     # Future outcome / Career horizon
@@ -550,6 +577,10 @@ def _infer_controllability(facts: List[StatedFact], appraisals: List[InferredApp
         controllable.append("Selecting a single 2-minute entry task (e.g. drinking water, clearing one item)")
         uncontrollable.append("Completing all assignments and household chores all at once")
 
+    if "priority_reorientation" in dims:
+        controllable.append("Choosing one small, immediate focus for today and allowing longer-term priorities to clarify gradually")
+        uncontrollable.append("Having all future priorities permanently fixed or resolved all at once")
+
     return ControllabilityAnalysis(
         potentially_controllable=controllable,
         potentially_uncontrollable=uncontrollable,
@@ -580,6 +611,12 @@ def _infer_support_needs(
         possible_needs.append("holding_space_for_ambivalence")
         possible_needs.append("reflective_clarification")
         contraindications.append("do_not_force_premature_decision_or_false_certainty")
+
+    if uncertainty.uncertainty_type == "priority_uncertainty" or "priority_reorientation" in dims:
+        possible_needs.append("values_clarification_and_grounding")
+        possible_needs.append("permission_to_hold_flux")
+        contraindications.append("do_not_assume_trauma_or_relationship_conflict")
+        contraindications.append("do_not_force_premature_rigid_plan")
 
     if "social_comparison" in dims and "career_horizon_uncertainty" in dims:
         possible_needs.append("values_clarification_and_pacing_differentiation")

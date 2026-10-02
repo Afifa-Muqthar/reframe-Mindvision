@@ -45,6 +45,8 @@ class GroundedNarrativeGenerator:
         # Dispatch to modality-specific narrative builder
         if modality == "clarification_needed":
             scenes = self._build_clarification_scenes(rep, strategy)
+        elif modality == "values_clarification":
+            scenes = self._build_priority_scenes(rep, strategy)
         elif modality == "validation":
             scenes = self._build_validation_scenes(rep, strategy)
         elif modality == "practical_structuring":
@@ -579,6 +581,71 @@ class GroundedNarrativeGenerator:
         return scenes
 
     # =========================================================================
+    # MODALITY: VALUES CLARIFICATION & SHIFTING PRIORITIES
+    # =========================================================================
+    def _build_priority_scenes(self, rep: CaseRepresentation, strategy: SelectedStrategy) -> List[Dict[str, Any]]:
+        scenes = []
+
+        # Scene 1: Acknowledging Shifting Priorities & Confusion
+        d1 = "I'm really confused about what to do because my priorities keep shifting."
+        scenes.append({
+            "stage": "priority_flux",
+            "title": "1. SHIFTING PRIORITIES",
+            "bubble_type": "thought",
+            "dialogue": d1,
+            "caption": "Acknowledging shifting priorities as a natural transition, not personal confusion.",
+            "narrative": (
+                "You shared that you are feeling confused about what to do as your priorities shift. "
+                "When multiple directions compete for attention, confusion is a natural signal that values and needs are being re-evaluated."
+            ),
+            "detail_traceability": {
+                "dialogue": {"origin": "user_stated", "source": "confusion about what to do, shifting priorities"},
+                "caption": {"origin": "inferred_hypothesis", "source": "ACT values clarification recognition"},
+                "narrative": {"origin": "user_stated", "source": "stated confusion and shifting priorities preserved"},
+            },
+        })
+
+        # Scene 2: Permission to Hold Flux Without Forcing Direction
+        scenes.append({
+            "stage": "permission_to_pause",
+            "title": "2. GIVING FLUX SPACE",
+            "bubble_type": "thought",
+            "dialogue": "It's normal for priorities to change. I don't have to lock everything down in a single day.",
+            "caption": "Allowing priorities to clarify naturally prevents premature, forced commitments.",
+            "narrative": (
+                f"{strategy.core_message} "
+                "Forcing yourself to pick a rigid path before you are ready can add unnecessary stress; "
+                "giving yourself room to observe what matters most allows clarity to emerge."
+            ),
+            "detail_traceability": {
+                "dialogue": {"origin": "inferred_hypothesis", "source": "permission to observe changing priorities"},
+                "caption": {"origin": "inferred_hypothesis", "source": "holding space for value evolution"},
+                "narrative": {"origin": "inferred_hypothesis", "source": strategy.core_message},
+            },
+        })
+
+        # Scene 3: One Simple Anchor for Today
+        step_text = strategy.suggested_step or "Write down your top two or three competing priorities on paper, and choose just one simple focus for today."
+        scenes.append({
+            "stage": "grounded_anchor",
+            "title": "3. ONE ANCHOR FOR TODAY",
+            "bubble_type": "speech",
+            "dialogue": "I will jot down my top priorities and choose just one small focus for today.",
+            "caption": "Choosing one immediate anchor restores clarity without demanding a total life overhaul.",
+            "narrative": (
+                f"{step_text} "
+                "Focusing on one tangible priority today gives you steady grounding while the bigger picture takes shape."
+            ),
+            "detail_traceability": {
+                "dialogue": {"origin": "creative_interpretation", "source": "speech bubble tangible anchor"},
+                "caption": {"origin": "inferred_hypothesis", "source": "proportionate action principle"},
+                "narrative": {"origin": "composite", "step": step_text},
+            },
+        })
+
+        return scenes
+
+    # =========================================================================
     # MODALITY 6: CLARIFICATION NEEDED (Sparse / Ambiguous Inputs — C11, C12)
     # =========================================================================
     def _build_clarification_scenes(self, rep: CaseRepresentation, strategy: SelectedStrategy) -> List[Dict[str, Any]]:
@@ -594,7 +661,7 @@ class GroundedNarrativeGenerator:
             "dialogue": d1,
             "caption": "Before jumping to conclusions, we hold your words exactly as you shared them.",
             "narrative": (
-                f"You shared: '{raw}'. When thoughts and emotions feel ambiguous or muffled, "
+                f"You shared: '{raw}'. When thoughts and emotions feel in flux, "
                 "it is important not to rush into forced advice or assumptions."
             ),
             "detail_traceability": {
@@ -613,7 +680,7 @@ class GroundedNarrativeGenerator:
             "caption": "Ambiguity does not require instant interpretation; giving it space is a valid step.",
             "narrative": (
                 f"{strategy.core_message} "
-                "Sometimes our minds go quiet or feel numb when carrying quiet stress. "
+                "Sometimes our minds need time to process uncertainty. "
                 "You do not have to have a clear diagnosis or plan to take care of yourself."
             ),
             "detail_traceability": {
@@ -629,7 +696,7 @@ class GroundedNarrativeGenerator:
             "stage": "clarification_invitation",
             "title": "3. GENTLE EXPLORATION",
             "bubble_type": "speech",
-            "dialogue": "What has felt especially heavy lately? I can take time to explore or just rest.",
+            "dialogue": "What feels most pressing right now? I can take time to explore or just rest.",
             "caption": "True support begins with curiosity rather than premature direction.",
             "narrative": (
                 f"If you'd like to explore further: {q_text} "

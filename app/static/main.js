@@ -39,6 +39,11 @@ form.addEventListener("submit", async (e) => {
       reasoning.what_may_be_happening || data.pattern || "Situation reflection";
     document.getElementById("reasoning-control").textContent =
       reasoning.what_you_can_control || "Focus on personal boundaries, support, and agency.";
+    const uncontrolEl = document.getElementById("reasoning-uncontrollable");
+    if (uncontrolEl) {
+      uncontrolEl.textContent =
+        reasoning.what_is_not_controllable || "Past events and external actions of others.";
+    }
     document.getElementById("reasoning-reframe").textContent =
       `“${reasoning.reframe || ""}”`;
     document.getElementById("reasoning-action").textContent =

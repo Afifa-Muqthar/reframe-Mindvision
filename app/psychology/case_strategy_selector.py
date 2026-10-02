@@ -111,12 +111,45 @@ class CaseStrategySelector:
         if "career_horizon_uncertainty" in dims:
             return self._select_career_locus_of_agency(rep)
 
-        # 12. Default: Open Empathetic Validation with Exploratory Clarification
+        # 12. Shifting Priorities & Direction Uncertainty
+        if "priority_reorientation" in dims or (rep.uncertainty.has_uncertainty and rep.uncertainty.uncertainty_type == "priority_uncertainty"):
+            return self._select_priority_uncertainty(rep)
+
+        # 13. Default: Open Empathetic Validation with Exploratory Clarification
         return self._select_general_validation(rep)
 
     # -------------------------------------------------------------------------
     # MODALITY BUILDERS
     # -------------------------------------------------------------------------
+
+    def _select_priority_uncertainty(self, rep: CaseRepresentation) -> SelectedStrategy:
+        return SelectedStrategy(
+            modality="values_clarification",
+            strategy_id="shifting_priorities_clarification",
+            name="Values Clarification & Priority Grounding",
+            clinical_framework="Acceptance & Commitment Therapy (ACT; Hayes, 1999); Values Clarification",
+            rationale=(
+                "The user is navigating shifting priorities and uncertainty about what direction to take. "
+                "When priorities fluctuate, feeling confused is an understandable response rather than personal failure or pathology. "
+                "Focuses on clarifying what matters in the immediate present without forcing premature long-term rigidity."
+            ),
+            confidence=0.88,
+            is_uncertain=True,
+            alternative_modalities=["locus_of_agency", "validation"],
+            contraindications=[
+                "do_not_assume_trauma_or_relationship_conflict",
+                "do_not_force_premature_rigid_plan",
+            ],
+            reframe_needed=False,
+            core_message=(
+                "When your priorities are shifting, feeling confused is a natural part of re-evaluating what matters most. "
+                "You do not need to lock down your entire direction today while things are in flux."
+            ),
+            suggested_step=(
+                "Write down your top two or three competing priorities on paper, "
+                "and choose just one simple, manageable focus for today while letting the broader direction unfold."
+            ),
+        )
 
     def _select_clarification(self, rep: CaseRepresentation) -> SelectedStrategy:
         return SelectedStrategy(
@@ -127,7 +160,7 @@ class CaseStrategySelector:
             rationale=(
                 "The user's input is brief, ambiguous, or lacks specific situational context. "
                 "Forcing an interpretative reframe or actionable advice would impose unsupported assumptions. "
-                "Validates emotional blunting/uncertainty and invites gentle exploration."
+                "Holds space for uncertainty and invites gentle exploration."
             ),
             confidence=0.85,
             is_uncertain=True,
@@ -138,10 +171,10 @@ class CaseStrategySelector:
                 "do_not_impose_unsupported_reframe",
             ],
             reframe_needed=False,
-            core_message="Feeling unsure, heavy, or numb is completely valid. You don't have to have everything sorted out to be heard.",
+            core_message="Feeling unsure or unsettled is completely valid. You don't have to have everything sorted out to be heard.",
             suggested_step=None,
             clarification_questions=[
-                "Has anything specific felt particularly demanding or strange lately?",
+                "Has anything specific felt particularly demanding lately?",
                 "Would you prefer to explore what might be underneath this feeling, or just take a quiet pause to catch your breath?",
             ],
         )

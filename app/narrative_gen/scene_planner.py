@@ -435,6 +435,7 @@ class ScenePlanner:
     ) -> Tuple[str, str, Optional[str], str]:
         text_corpus = (" ".join(facts) + " " + raw_text).lower()
         is_workplace = any(k in text_corpus for k in ["supervisor", "colleague", "meeting", "project", "injustice", "credit"])
+        is_priority = any(k in text_corpus for k in ["priority", "priorities", "shifting", "confused about what to do"])
 
         if is_workplace:
             if idx == 1 or stage in ["reality", "trigger"]:
@@ -458,6 +459,28 @@ class ScenePlanner:
                     "desk pen and notebook",
                     "creative_interpretation",
                 )
+        elif is_priority:
+            if idx == 1 or stage in ["reality", "trigger", "priority_flux"]:
+                return (
+                    "quiet study room with desk, open notebook, and morning window light",
+                    "open notebook with handwritten list of notes",
+                    "pen resting on open page",
+                    "creative_interpretation",
+                )
+            elif idx == 2 or stage in ["validation", "pause", "permission_to_pause"]:
+                return (
+                    "study room desk by window with soft ambient sunlight",
+                    "notepad with highlighted notes",
+                    "warm cup of tea on desk",
+                    "creative_interpretation",
+                )
+            else:
+                return (
+                    "clean organized study desk with focused notepad",
+                    "clean notebook page with single top priority circled",
+                    "desk pen and glass of water",
+                    "creative_interpretation",
+                )
 
         return anchors.environment, anchors.primary_object, anchors.secondary_object, "user_stated" if facts else "creative_interpretation"
 
@@ -474,18 +497,19 @@ class ScenePlanner:
         Derives (action, posture, expression, gaze, origin) ensuring observable physical events,
         physical progression, and visual distinction across adjacent panels.
         """
-        text_corpus = " ".join(facts).lower()
+        text_corpus = (" ".join(facts) + " " + getattr(anchors, "primary_object", "") + " " + getattr(anchors, "environment", "")).lower()
 
         # Case-specific thematic cues
         is_career = any(k in text_corpus for k in ["career", "graduat", "placed", "firm", "job"])
         is_bed = any(k in text_corpus for k in ["bed", "fatigue", "flare-up", "autoimmune"])
         is_freeze = any(k in text_corpus for k in ["floor", "freeze", "laundry", "deadline"])
         is_workplace = any(k in text_corpus for k in ["supervisor", "colleague", "meeting", "project", "injustice", "credit"])
+        is_priority = any(k in text_corpus for k in ["priority", "priorities", "shifting", "confused about what to do"]) or any(k in stage.lower() for k in ["priority", "flux", "anchor"])
 
         stg = stage.lower()
 
         # Scene 1: Initial tension / trigger reality
-        if idx == 1 or any(k in stg for k in ["trigger", "reality", "freeze_reality", "cognitive_trap", "reflection"]):
+        if idx == 1 or any(k in stg for k in ["trigger", "reality", "freeze_reality", "cognitive_trap", "reflection", "priority_flux"]):
             if is_career:
                 action = "sitting at study desk with head resting on one hand looking down"
                 posture = "seated hunched slightly forward at desk"
@@ -506,6 +530,11 @@ class ScenePlanner:
                 posture = "seated upright with rigid tense posture"
                 expression = "stunned constrained expression"
                 gaze = "looking quietly toward meeting notes in disbelief"
+            elif is_priority:
+                action = "sitting at study desk with open notebook, looking thoughtfully at a list of handwritten notes"
+                posture = "seated upright with head resting gently on one hand"
+                expression = "thoughtful pensive expression"
+                gaze = "looking thoughtfully down at notebook notes"
             else:
                 action = "sitting quietly on wooden chair with hands resting on lap"
                 posture = "seated still with shoulders slightly curved"
@@ -543,7 +572,7 @@ class ScenePlanner:
                 return action, posture, expression, gaze, "creative_interpretation"
 
         # In a 3-panel arc:
-        if idx == 2 or any(k in stg for k in ["examination", "validation", "holding_space", "unfreezing", "validation_of_pause", "evidence_testing"]):
+        if idx == 2 or any(k in stg for k in ["examination", "validation", "holding_space", "unfreezing", "validation_of_pause", "evidence_testing", "permission_to_pause"]):
             if is_career:
                 action = "sitting back in desk chair pausing and taking a slow breath"
                 posture = "leaning back slightly into chair backrest"
@@ -564,6 +593,11 @@ class ScenePlanner:
                 posture = "standing upright with dropped shoulders"
                 expression = "serious reflective expression acknowledging anger"
                 gaze = "looking outward through window acknowledging legitimate anger"
+            elif is_priority:
+                action = "pausing comfortably in chair and looking toward window with dropped shoulders"
+                posture = "seated comfortably back in chair"
+                expression = "calm reflective expression"
+                gaze = "looking toward side window in quiet reflection"
             else:
                 action = "leaning back in chair pausing and taking a deliberate slow breath"
                 posture = "seated upright with shoulders dropped"
@@ -592,6 +626,11 @@ class ScenePlanner:
             posture = "seated upright focused attentively over documentation"
             expression = "grounded determined expression"
             gaze = "focused directly on project records and timeline documentation"
+        elif is_priority:
+            action = "writing down a single clear priority at the top of a clean notebook page"
+            posture = "seated attentively with pen poised over paper"
+            expression = "grounded clear expression"
+            gaze = "focused directly on the written priority"
         else:
             action = "standing calmly beside desk looking forward with steady posture"
             posture = "standing upright relaxed"

@@ -40,6 +40,13 @@ def update_image_path(session_id: int, image_path: str):
     conn.close()
 
 
+def update_audio_path(session_id: int, audio_path: str):
+    conn = get_connection()
+    conn.execute("UPDATE sessions SET audio_path = ? WHERE id = ?", (audio_path, session_id))
+    conn.commit()
+    conn.close()
+
+
 def get_session(session_id: int):
     conn = get_connection()
     row = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()

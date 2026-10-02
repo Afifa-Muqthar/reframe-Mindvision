@@ -113,3 +113,44 @@ def test_reasoning_object_contains_only_grounded_fields_and_no_legacy_fields(moc
     # 3. Assert all 5 grounded fields have non-empty values
     for grounded_key in EXPECTED_GROUNDED_FIELDS:
         assert reasoning[grounded_key], f"Grounded field '{grounded_key}' must not be empty"
+
+
+PRIORITIES_INPUT = (
+    "I'm really confused about what to do. My priorities are shifting every now and then."
+)
+
+
+@patch("app.main._run_tts", return_value=None)
+@patch("app.main.threading.Thread")
+def test_shifting_priorities_psychological_understanding_endpoint(mock_thread, mock_tts, client):
+    """
+    Verify that the /process endpoint recognizes uncertainty and shifting priorities
+    without inventing trauma, relationship conflict, or emotional blunting.
+    """
+    response = client.post("/process", data={"text": PRIORITIES_INPUT})
+    assert response.status_code == 200
+
+    data = response.get_json()
+    assert data["crisis"] is False
+    assert "reasoning" in data
+
+    reasoning = data["reasoning"]
+    what_happening = reasoning.get("what_may_be_happening", "")
+    what_control = reasoning.get("what_you_can_control", "")
+    reframe = reasoning.get("reframe", "")
+    next_step = reasoning.get("next_step", "")
+
+    # Assert no generic fallback phrase
+    for generic in GENERIC_STRESS_PHRASES:
+        assert generic not in f"{what_happening} {what_control} {reframe} {next_step}"
+
+    # Assert grounded priorities understanding
+    assert "priorit" in what_happening.lower() or "confus" in what_happening.lower()
+    assert "priorit" in reframe.lower() or "confus" in reframe.lower()
+    assert "priorit" in next_step.lower() or "focus" in next_step.lower()
+    assert all(reasoning[k] for k in EXPECTED_GROUNDED_FIELDS)
+
+    # Assert not flagged as external threat / trauma (avoids inventing trauma)
+    assert data["is_external_threat"] is False
+    assert "Values Clarification" in data["technique"]["name"]
+

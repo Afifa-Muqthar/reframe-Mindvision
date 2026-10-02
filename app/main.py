@@ -56,6 +56,7 @@ _emotion_classifier = EmotionClassifier()
 
 # Tracks in-flight background image generation per session id
 _image_status = {}  # session_id(str) -> {"status": "pending"|"done"|"error", "path": str|None}
+_image_lock = threading.Lock()
 
 
 @app.route("/")
@@ -192,8 +193,8 @@ def process():
         case_frame.summary = case_rep.descriptive_summary
         case_frame.pattern = f"Clinical Strategy: {selected_strategy.modality.replace('_', ' ').title()}"
         case_frame.is_external_threat = (
-            not selected_strategy.reframe_needed
-            or any(a.dimension in ("systemic_injustice", "relational_harm", "medical_adversity", "external_threat") for a in case_rep.inferred_appraisals)
+            any(a.dimension in ("systemic_injustice", "relational_harm", "medical_adversity", "external_threat") for a in case_rep.inferred_appraisals)
+            or selected_strategy.strategy_id in ("injustice_validation_options", "bodily_limitation_compassion")
         )
         primary_technique = {
             "name": selected_strategy.modality.replace("_", " ").title(),
@@ -221,6 +222,8 @@ def process():
     # 9. Connected TTS voice narration (tells the cohesive psychological story).
     voice_script = (story.get("voice_script") if story else None) or strategy.voice_script or formatted_narrative
     audio_path = _run_tts(session_id, voice_script)
+    if audio_path:
+        repository.update_audio_path(session_id, audio_path)
 
     # 10. Launch process-isolated comic image generator with structured config.
     _image_status[str(session_id)] = {"status": "pending", "path": None}
@@ -314,30 +317,37 @@ def _generate_image_background(session_id: int, config_path: str, output_path: s
     """
     Spawns the dedicated image worker in an isolated child process using
     structured JSON arguments. Protects the parent Flask process from VAE-decode
-    native memory segmentation faults.
+    native memory segmentation faults. Uses a thread lock to serialize worker
+    executions and prevent GPU memory contention.
     """
-    try:
-        result = subprocess.run(
-            [sys.executable, "-m", "app.image_gen.worker", config_path],
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
+    with _image_lock:
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "app.image_gen.worker", config_path],
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
 
-        if result.returncode == 0 and os.path.exists(output_path):
-            repository.update_image_path(session_id, output_path)
-            _image_status[str(session_id)] = {"status": "done", "path": output_path}
-        else:
-            err_output = result.stderr[-500:] if result.stderr else "Image generation worker failed."
-            _image_status[str(session_id)] = {"status": "error", "path": None, "error": err_output}
-    except Exception as e:
-        _image_status[str(session_id)] = {"status": "error", "path": None, "error": str(e)}
-    finally:
-        if os.path.exists(config_path):
-            try:
-                os.remove(config_path)
-            except OSError:
-                pass
+            if result.returncode == 0 and os.path.exists(output_path):
+                repository.update_image_path(session_id, output_path)
+                _image_status[str(session_id)] = {"status": "done", "path": output_path}
+            else:
+                sys.stderr.write(
+                    f"[IMAGE WORKER ERROR] Session {session_id} code={result.returncode}\n"
+                    f"STDOUT: {result.stdout}\n"
+                    f"STDERR: {result.stderr}\n"
+                )
+                err_output = result.stderr[-500:] if result.stderr else "Image generation worker failed."
+                _image_status[str(session_id)] = {"status": "error", "path": None, "error": err_output}
+        except Exception as e:
+            _image_status[str(session_id)] = {"status": "error", "path": None, "error": str(e)}
+        finally:
+            if os.path.exists(config_path):
+                try:
+                    os.remove(config_path)
+                except OSError:
+                    pass
 
 
 if __name__ == "__main__":
